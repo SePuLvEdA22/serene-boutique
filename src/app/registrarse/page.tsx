@@ -5,15 +5,26 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
+function Spinner() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" opacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function RegistrarsePage() {
   const router = useRouter();
   const { register } = useAuth();
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     const form = e.currentTarget;
     const name = (form.elements.namedItem('name') as HTMLInputElement).value;
@@ -30,6 +41,7 @@ export default function RegistrarsePage() {
 
     if (err) {
       setError(err);
+      setLoading(false);
     } else {
       setSuccess(true);
     }
@@ -92,8 +104,12 @@ export default function RegistrarsePage() {
             <input id="confirm" name="confirm" type="password" className="input-field" required minLength={6} />
           </div>
           {error && <p className="font-body text-sm text-error" role="alert">{error}</p>}
-          <button type="submit" className="btn-primary w-full">
-            Crear cuenta
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner /> Creando cuenta...
+              </span>
+            ) : 'Crear cuenta'}
           </button>
         </form>
 

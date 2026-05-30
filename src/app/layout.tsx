@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import CartDrawer from "@/components/CartDrawer";
+import { ToastProvider } from "@/context/ToastContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
@@ -60,12 +62,16 @@ export default function RootLayout({
     >
       <body className="flex min-h-dvh flex-col bg-surface font-body text-on-surface antialiased">
         <AuthProvider>
+          <ThemeProvider>
           <CartProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <CartDrawer />
+            <ToastProvider>
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <CartDrawer />
+            </ToastProvider>
           </CartProvider>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

@@ -7,37 +7,58 @@ import { type Product } from '@/types';
 import { formatPrice } from '@/lib/products';
 import ProductImage from '@/components/ProductImage';
 
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export default function BuscarPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentQuery = useRef('');
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const search = useCallback(async (q: string) => {
+  const search = useCallback(async (q: string, page = 1) => {
     if (!q.trim()) {
       setResults([]);
+      setPagination(null);
       setSearched(false);
       return;
     }
 
     setLoading(true);
     setSearched(true);
+    currentQuery.current = q;
 
     try {
-      const res = await fetch(`/api/products?search=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/products?search=${encodeURIComponent(q)}&page=${page}&limit=8`);
       const data = await res.json();
-      setResults(data.products);
+      if (currentQuery.current === q) {
+        setResults(data.products);
+        setPagination(data.pagination);
+      }
     } catch {
-      setResults([]);
+      if (currentQuery.current === q) {
+        setResults([]);
+        setPagination(null);
+      }
     } finally {
-      setLoading(false);
+      if (currentQuery.current === q) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -84,7 +105,7 @@ export default function BuscarPage() {
         </svg>
         {query && (
           <button
-            onClick={() => { setQuery(''); setResults([]); setSearched(false); inputRef.current?.focus(); }}
+            onClick={() => { setQuery(''); setResults([]); setPagination(null); setSearched(false); inputRef.current?.focus(); }}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-outline transition-colors hover:text-on-surface"
             aria-label="Limpiar búsqueda"
           >
@@ -132,7 +153,8 @@ export default function BuscarPage() {
       {!loading && results.length > 0 && (
         <>
           <p className="mb-6 font-body text-sm text-on-surface-variant">
-            {results.length} resultado{results.length !== 1 ? 's' : ''} para &quot;{query}&quot;
+            {pagination?.total ?? results.length} resultado{(pagination?.total ?? results.length) !== 1 ? 's' : ''} para &quot;{query}&quot;
+            {pagination && pagination.totalPages > 1 && ` (página ${pagination.page} de ${pagination.totalPages})`}
           </p>
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-10 animate-stagger">
             {results.map((product) => (
@@ -147,6 +169,50 @@ export default function BuscarPage() {
               </div>
             ))}
           </div>
+
+          {pagination && pagination.totalPages > 1 && (
+            <div className="mt-10 flex items-center justify-center gap-3" role="navigation" aria-label="Paginación">
+              <button
+                onClick={() => search(query, pagination.page - 1)}
+                disabled={!pagination.hasPrev}
+                className="btn-secondary px-4 py-2 disabled:opacity-30"
+                aria-label="Página anterior"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Anterior
+              </button>
+
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => search(query, p)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg font-body text-sm transition-colors ${
+                    p === pagination.page
+                      ? 'bg-primary text-on-primary'
+                      : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                  }`}
+                  aria-label={`Ir a página ${p}`}
+                  aria-current={p === pagination.page ? 'page' : undefined}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button
+                onClick={() => search(query, pagination.page + 1)}
+                disabled={!pagination.hasNext}
+                className="btn-secondary px-4 py-2 disabled:opacity-30"
+                aria-label="Página siguiente"
+              >
+                Siguiente
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

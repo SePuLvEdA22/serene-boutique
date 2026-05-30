@@ -44,9 +44,9 @@ export default function Footer() {
             <ul className="flex flex-col gap-2">
               {[
                 { href: '/contacto', label: 'Contacto' },
-                { href: '#', label: 'Envíos' },
-                { href: '#', label: 'Devoluciones' },
-                { href: '#', label: 'FAQ' },
+                { href: '/envios', label: 'Envíos' },
+                { href: '/devoluciones', label: 'Devoluciones' },
+                { href: '/faq', label: 'FAQ' },
               ].map((link) => (
                 <li key={link.label}>
                   <Link

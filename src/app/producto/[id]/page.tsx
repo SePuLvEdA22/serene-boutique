@@ -4,13 +4,21 @@ import { useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
+import { useToast } from '@/context/ToastContext';
 import { products, getProductById, formatPrice } from '@/lib/products';
 import ProductImage from '@/components/ProductImage';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const product = getProductById(params.id);
+
+function catLabel(cat: string) {
+  return cat === 'fundas' ? 'Fundas' : cat === 'cargadores' ? 'Cargadores' : cat === 'termos' ? 'Termos' : 'Personalizados';
+}
+
   const { addItem } = useCart();
+  const { addToast } = useToast();
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
     product?.colors?.[0]
   );
@@ -25,22 +33,17 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     addItem(product, quantity, selectedColor);
+    addToast(`${product.name} agregado al carrito`, 'success');
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   return (
     <div className="container-store py-12">
-      <Link
-        href={`/${product.category}`}
-        className="mb-8 inline-flex items-center gap-2 font-body text-sm uppercase tracking-widest text-on-surface-variant transition-colors hover:text-primary"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12" />
-          <polyline points="12 19 5 12 12 5" />
-        </svg>
-        Volver a {product.category === 'fundas' ? 'Fundas' : product.category === 'cargadores' ? 'Cargadores' : product.category === 'termos' ? 'Termos' : 'Personalizados'}
-      </Link>
+      <Breadcrumbs items={[
+        { label: catLabel(product.category), href: `/${product.category}` },
+        { label: product.name },
+      ]} />
 
       <div className="grid gap-12 lg:grid-cols-2">
         <ProductImage product={product} className="aspect-square rounded-2xl" />

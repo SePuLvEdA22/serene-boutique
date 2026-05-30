@@ -4,10 +4,21 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+
+function Spinner() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" opacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function IniciarSesionPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { addToast } = useToast();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +37,7 @@ export default function IniciarSesionPage() {
       setError(err);
       setLoading(false);
     } else {
+      addToast('Sesión iniciada correctamente', 'success');
       router.push('/');
     }
   };
@@ -55,7 +67,11 @@ export default function IniciarSesionPage() {
           </div>
           {error && <p className="font-body text-sm text-error" role="alert">{error}</p>}
           <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner /> Iniciando sesión...
+              </span>
+            ) : 'Iniciar sesión'}
           </button>
         </form>
 

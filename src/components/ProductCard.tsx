@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/products';
 import { type Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { useToast } from '@/context/ToastContext';
 import ProductImage from './ProductImage';
 
 interface ProductCardProps {
@@ -13,6 +14,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
+  const { addToast } = useToast();
   const [anim, setAnim] = useState<'idle' | 'adding' | 'done'>('idle');
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -20,6 +22,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     if (anim !== 'idle') return;
     setAnim('adding');
     addItem(product);
+    addToast(`${product.name} agregado al carrito`, 'success');
     setTimeout(() => setAnim('done'), 300);
     setTimeout(() => setAnim('idle'), 1500);
   };

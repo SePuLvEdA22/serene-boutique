@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { type Product } from '@/types';
 
 interface ProductImageProps {
@@ -12,7 +15,7 @@ const categoryColors: Record<string, string> = {
   personalizados: '#d9b8b5',
 };
 
-export default function ProductImage({ product, className }: ProductImageProps) {
+function SvgFallback({ product, className }: ProductImageProps) {
   const color = categoryColors[product.category] || '#d3c3c1';
 
   return (
@@ -53,6 +56,28 @@ export default function ProductImage({ product, className }: ProductImageProps) 
           </>
         )}
       </svg>
+    </div>
+  );
+}
+
+export default function ProductImage(props: ProductImageProps) {
+  const { product } = props;
+  const [showFallback, setShowFallback] = useState(!product.image);
+
+  if (showFallback || !product.image) {
+    return <SvgFallback {...props} />;
+  }
+
+  return (
+    <div className={`relative overflow-hidden ${props.className || ''}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={product.image}
+        alt={product.name}
+        className="h-full w-full object-cover"
+        onError={() => setShowFallback(true)}
+        loading="lazy"
+      />
     </div>
   );
 }
