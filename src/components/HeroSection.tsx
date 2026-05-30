@@ -2,9 +2,9 @@ import Link from 'next/link';
 
 export default function HeroSection() {
   return (
-    <section className="section-gap relative overflow-hidden rounded-2xl bg-surface-container">
+    <section className="section-gap relative overflow-hidden rounded-2xl bg-surface-container animate-fade-in-up">
       <div className="flex flex-col items-center px-6 py-20 text-center md:py-32">
-        <span className="chip mb-4">Nueva Colección 2025</span>
+        <span className="chip mb-4">Nueva Colección 2026</span>
         <h1 className="max-w-3xl font-heading text-4xl font-semibold leading-tight tracking-tight text-on-surface md:text-6xl">
           Elegancia que te{' '}
           <span className="italic text-primary">acompaña</span>

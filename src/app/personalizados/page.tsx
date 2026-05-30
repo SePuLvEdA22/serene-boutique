@@ -11,7 +11,9 @@ export default function PersonalizadosPage() {
   const { addItem } = useCart();
   const [selectedType, setSelectedType] = useState<'funda' | 'termo' | 'pack'>('funda');
   const [designDescription, setDesignDescription] = useState('');
+  const [fileName, setFileName] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const customProducts = products.filter(p => p.category === 'personalizados');
   const selectedProduct = selectedType === 'funda'
@@ -20,20 +22,43 @@ export default function PersonalizadosPage() {
     ? customProducts[1]
     : customProducts[2];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setFileName(file.name);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedProduct) {
-      addItem(selectedProduct);
+    if (!selectedProduct) return;
+
+    setIsSubmitting(true);
+
+    try {
+      await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Solicitud Personalizada',
+          email: 'cliente@email.com',
+          subject: `Personalizado: ${selectedProduct.name}`,
+          message: `Tipo: ${selectedType}\nProducto: ${selectedProduct.name}\nDiseño: ${designDescription}\nArchivo: ${fileName || 'Ninguno'}`,
+        }),
+      });
+    } catch {
+      /* Silently log - order still proceeds */
     }
+
+    addItem(selectedProduct);
+    setIsSubmitting(false);
     setSubmitted(true);
   };
 
   if (submitted) {
     return (
       <div className="container-store py-12">
-        <div className="mx-auto max-w-lg rounded-2xl bg-surface-container p-8 text-center">
+        <div className="mx-auto max-w-lg rounded-2xl bg-surface-container p-8 text-center animate-fade-in">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-container">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -41,11 +66,18 @@ export default function PersonalizadosPage() {
           <p className="mt-2 font-body text-base text-on-surface-variant">
             Te contactaremos pronto para confirmar los detalles de tu pedido personalizado.
           </p>
+          <div className="mt-4 rounded-lg bg-surface-container-low p-4 text-left">
+            <p className="font-body text-sm font-medium text-on-surface">Resumen:</p>
+            <p className="mt-1 font-body text-sm text-on-surface-variant">
+              Producto: {selectedProduct?.name}<br />
+              Diseño: {designDescription || 'Sin especificar'}{fileName ? `\nArchivo: ${fileName}` : ''}
+            </p>
+          </div>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/carrito')}
             className="btn-primary mt-6"
           >
-            Volver al inicio
+            Ver carrito
           </button>
         </div>
       </div>
@@ -53,7 +85,7 @@ export default function PersonalizadosPage() {
   }
 
   return (
-    <div className="container-store py-12">
+    <div className="container-store py-12 animate-fade-in">
       <div className="mb-10">
         <h1 className="font-heading text-4xl font-medium text-on-surface md:text-5xl">Personalizados</h1>
         <p className="mt-3 max-w-xl font-body text-base leading-relaxed text-on-surface-variant">
@@ -85,10 +117,11 @@ export default function PersonalizadosPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>
-              <label className="mb-2 block font-body text-sm font-medium text-on-surface-variant uppercase tracking-wider">
-                ¿Qué diseño tienes en mente?
+              <label htmlFor="design-description" className="mb-2 block font-body text-sm font-medium text-on-surface-variant uppercase tracking-wider">
+                ¿Qué diseño tienes en mente? *
               </label>
               <textarea
+                id="design-description"
                 value={designDescription}
                 onChange={(e) => setDesignDescription(e.target.value)}
                 placeholder="Describe tu idea: colores, texto, imágenes, estilo..."
@@ -99,25 +132,39 @@ export default function PersonalizadosPage() {
             </div>
 
             <div>
-              <label className="mb-2 block font-body text-sm font-medium text-on-surface-variant uppercase tracking-wider">
+              <label htmlFor="file-upload" className="mb-2 block font-body text-sm font-medium text-on-surface-variant uppercase tracking-wider">
                 Sube tu referencia (opcional)
               </label>
-              <div className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-outline-variant p-8 transition-colors hover:border-primary">
+              <label
+                htmlFor="file-upload"
+                className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-outline-variant p-8 transition-colors hover:border-primary"
+              >
                 <div className="text-center">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-outline">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-outline" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  <p className="mt-2 font-body text-sm text-on-surface-variant">
-                    Arrastra o haz clic para subir
-                  </p>
+                  {fileName ? (
+                    <p className="mt-2 font-body text-sm text-primary">{fileName}</p>
+                  ) : (
+                    <p className="mt-2 font-body text-sm text-on-surface-variant">
+                      Arrastra o haz clic para subir
+                    </p>
+                  )}
                 </div>
-              </div>
+              </label>
+              <input
+                id="file-upload"
+                type="file"
+                accept="image/*,.pdf"
+                className="sr-only"
+                onChange={handleFileChange}
+              />
             </div>
 
-            <button type="submit" className="btn-primary w-full">
-              Agregar al carrito — {selectedProduct ? formatPrice(selectedProduct.price) : ''}
+            <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Agregando...' : `Agregar al carrito — ${selectedProduct ? formatPrice(selectedProduct.price) : ''}`}
             </button>
           </form>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { type CartItem, type Product } from '@/types';
 
 interface CartState {
@@ -129,8 +129,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'TOGGLE_CART' });
   }, []);
 
-  const totalItems = state.items.reduce((acc, item) => acc + item.quantity, 0);
-  const totalPrice = state.items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const totalItems = useMemo(() => state.items.reduce((acc, item) => acc + item.quantity, 0), [state.items]);
+  const totalPrice = useMemo(() => state.items.reduce((acc, item) => acc + item.product.price * item.quantity, 0), [state.items]);
 
   return (
     <CartContext.Provider

@@ -33,12 +33,12 @@ export default function CategorySection() {
       <h2 className="mb-8 font-heading text-3xl font-medium text-on-surface md:text-4xl">
         Categorías
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-stagger">
         {categories.map((cat) => (
           <Link
             key={cat.href}
             href={cat.href}
-            className={`group relative flex h-48 flex-col justify-end overflow-hidden rounded-xl bg-gradient-to-br p-6 transition-shadow hover:shadow-medium ${cat.gradient}`}
+            className={`group relative flex h-48 flex-col justify-end overflow-hidden rounded-xl bg-gradient-to-br p-6 transition-shadow duration-300 hover:shadow-medium ${cat.gradient}`}
           >
             <h3 className="font-heading text-2xl font-medium text-on-surface transition-colors group-hover:text-primary">
               {cat.title}

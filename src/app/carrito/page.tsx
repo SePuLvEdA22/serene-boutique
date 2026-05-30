@@ -13,7 +13,7 @@ export default function CarritoPage() {
       <div className="container-store py-12">
         <h1 className="mb-8 font-heading text-4xl font-medium text-on-surface md:text-5xl">Carrito</h1>
         <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-container py-20 text-center">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-outline">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-outline" aria-hidden="true">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <path d="M16 10a4 4 0 01-8 0" />
@@ -41,61 +41,70 @@ export default function CarritoPage() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-4">
             {items.map((item) => (
-              <div
-                key={`${item.product.id}-${item.selectedColor}`}
-                className="flex gap-6 rounded-2xl bg-surface-container-low p-4"
-              >
-                <ProductImage product={item.product} className="h-24 w-24 flex-shrink-0 rounded-xl" />
-                <div className="flex flex-1 flex-col justify-between">
-                  <div>
-                    <Link
-                      href={`/producto/${item.product.id}`}
-                      className="font-heading text-base font-medium text-on-surface transition-colors hover:text-primary"
-                    >
-                      {item.product.name}
-                    </Link>
-                    {item.selectedColor && (
-                      <p className="mt-1 font-body text-sm text-on-surface-variant">
-                        Color: {item.selectedColor}
+              <li key={`${item.product.id}-${item.selectedColor}`}>
+                <div className="flex gap-6 rounded-2xl bg-surface-container-low p-4">
+                  <ProductImage product={item.product} className="h-24 w-24 flex-shrink-0 rounded-xl" />
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div>
+                      <Link
+                        href={`/producto/${item.product.id}`}
+                        className="font-heading text-base font-medium text-on-surface transition-colors hover:text-primary"
+                      >
+                        {item.product.name}
+                      </Link>
+                      {item.selectedColor && (
+                        <p className="mt-1 font-body text-sm text-on-surface-variant">
+                          Color: {item.selectedColor}
+                        </p>
+                      )}
+                      <p className="mt-1 font-body text-sm text-primary">
+                        {formatPrice(item.product.price)}
                       </p>
-                    )}
-                    <p className="mt-1 font-body text-sm text-primary">
-                      {formatPrice(item.product.price)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.product.id, item.quantity - 1, item.selectedColor)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant text-sm transition-all duration-150 active:scale-90 hover:bg-surface-container"
+                          aria-label="Disminuir cantidad"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </button>
+                        <span className="w-8 text-center font-body text-sm" aria-live="polite" aria-label={`Cantidad: ${item.quantity}`}>
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.product.id, item.quantity + 1, item.selectedColor)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant text-sm transition-all duration-150 active:scale-90 hover:bg-surface-container"
+                          aria-label="Aumentar cantidad"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </button>
+                      </div>
                       <button
-                        onClick={() =>
-                          updateQuantity(item.product.id, item.quantity - 1, item.selectedColor)
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant text-sm transition-colors hover:bg-surface-container"
+                        onClick={() => removeItem(item.product.id, item.selectedColor)}
+                        className="font-body text-sm text-outline transition-colors hover:text-error"
+                        aria-label={`Eliminar ${item.product.name}`}
                       >
-                        -
-                      </button>
-                      <span className="w-8 text-center font-body text-sm">{item.quantity}</span>
-                      <button
-                        onClick={() =>
-                          updateQuantity(item.product.id, item.quantity + 1, item.selectedColor)
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant text-sm transition-all duration-150 active:scale-90 hover:bg-surface-container"
-                      >
-                        +
+                        Eliminar
                       </button>
                     </div>
-                    <button
-                      onClick={() => removeItem(item.product.id, item.selectedColor)}
-                      className="font-body text-sm text-outline transition-colors hover:text-error"
-                    >
-                      Eliminar
-                    </button>
                   </div>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
         <div className="lg:col-span-1">
@@ -119,9 +128,9 @@ export default function CarritoPage() {
                 </div>
               </div>
             </div>
-            <button className="btn-primary mt-6 w-full">
+            <Link href="/checkout" className="btn-primary mt-6 w-full block text-center">
               Proceder al pago
-            </button>
+            </Link>
             <Link
               href="/fundas"
               className="mt-3 block text-center font-body text-sm text-on-surface-variant underline transition-colors hover:text-primary"

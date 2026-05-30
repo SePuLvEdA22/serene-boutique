@@ -165,5 +165,9 @@ export function getFeaturedProducts(): Product[] {
 }
 
 export function formatPrice(price: number): string {
-  return `$${price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+  }).format(price);
 }
