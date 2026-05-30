@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { type Product } from '@/types';
 import ProductCard from './ProductCard';
+import CustomSelect from './CustomSelect';
 
 interface ProductFiltersProps {
   products: Product[];
@@ -52,18 +53,17 @@ export default function ProductFilters({ products, title }: ProductFiltersProps)
           </h2>
         )}
         <div className="flex items-center gap-3">
-          <label htmlFor="sort-select" className="sr-only">Ordenar por</label>
-          <select
-            id="sort-select"
+          <CustomSelect
+            label="Ordenar por"
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 font-body text-sm text-on-surface transition-colors focus:border-primary"
-          >
-            <option value="default">Ordenar por</option>
-            <option value="price-asc">Precio: menor a mayor</option>
-            <option value="price-desc">Precio: mayor a menor</option>
-            <option value="name">Nombre: A-Z</option>
-          </select>
+            onChange={(v) => setSortBy(v as typeof sortBy)}
+            options={[
+              { value: 'default', label: 'Ordenar por' },
+              { value: 'price-asc', label: 'Precio: menor a mayor' },
+              { value: 'price-desc', label: 'Precio: mayor a menor' },
+              { value: 'name', label: 'Nombre: A-Z' },
+            ]}
+          />
           <span className="font-body text-sm text-on-surface-variant">
             {products.length} producto{products.length !== 1 ? 's' : ''}
           </span>
