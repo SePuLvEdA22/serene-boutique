@@ -133,6 +133,39 @@
   background-color: #d0b0ad;
 }
 
+/* Override Tailwind v4 inline color utilities to use var() for dark mode support */
+.dark .bg-surface { background-color: var(--color-surface); }
+.dark .bg-surface\/80 { background-color: color-mix(in oklab, var(--color-surface) 80%, transparent); }
+.dark .bg-surface-container { background-color: var(--color-surface-container); }
+.dark .bg-surface-container-low { background-color: var(--color-surface-container-low); }
+.dark .bg-surface-container-high { background-color: var(--color-surface-container-high); }
+.dark .bg-primary { background-color: var(--color-primary); }
+.dark .bg-primary-container { background-color: var(--color-primary-container); }
+.dark .bg-error { background-color: var(--color-error); }
+.dark .bg-error-container { background-color: var(--color-error-container); }
+.dark .bg-outline-variant { background-color: var(--color-outline-variant); }
+.dark .text-on-surface { color: var(--color-on-surface); }
+.dark .text-on-surface-variant { color: var(--color-on-surface-variant); }
+.dark .text-primary { color: var(--color-primary); }
+.dark .text-on-primary { color: var(--color-on-primary); }
+.dark .text-on-primary-container { color: var(--color-on-primary-container); }
+.dark .text-on-error { color: var(--color-on-error); }
+.dark .text-on-error-container { color: var(--color-on-error-container); }
+.dark .text-error { color: var(--color-error); }
+.dark .text-outline { color: var(--color-outline); }
+.dark .border-primary { border-color: var(--color-primary); }
+.dark .border-outline-variant { border-color: var(--color-outline-variant); }
+.dark .border-outline-variant\/50 { border-color: color-mix(in oklab, var(--color-outline-variant) 50%, transparent); }
+.dark .from-surface-container-high { --tw-gradient-from: var(--color-surface-container-high); }
+.dark .to-surface-container { --tw-gradient-to: var(--color-surface-container); }
+.dark .from-primary-container { --tw-gradient-from: var(--color-primary-container); }
+.dark .hover\:bg-surface-container:hover { background-color: var(--color-surface-container); }
+.dark .hover\:bg-surface-container-high:hover { background-color: var(--color-surface-container-high); }
+.dark .hover\:text-primary:hover { color: var(--color-primary); }
+.dark .hover\:border-primary:hover { border-color: var(--color-primary); }
+.dark .group-hover\:text-primary:is(:where(.group):hover *) { color: var(--color-primary); }
+
+
 @layer base {
   * {
     box-sizing: border-box;
