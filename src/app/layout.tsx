@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SiteShell from "@/components/SiteShell";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import CartDrawer from "@/components/CartDrawer";
@@ -65,9 +64,9 @@ export default function RootLayout({
           <ThemeProvider>
           <CartProvider>
             <ToastProvider>
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
+              <SiteShell>
+                {children}
+              </SiteShell>
               <CartDrawer />
             </ToastProvider>
           </CartProvider>

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -12,9 +13,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = db.users.find((u) => u.email === email && u.password === password);
-
-    if (!user) {
+    const user = db.users.get().find((u) => u.email === email);
+    if (!user || !bcrypt.compareSync(password, user.password)) {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }

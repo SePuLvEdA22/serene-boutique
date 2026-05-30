@@ -118,7 +118,10 @@ export default function Header() {
           <CartIcon />
           <div className="hidden md:flex items-center gap-2">
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <Link href="/mis-ordenes" className="font-body text-xs text-on-surface-variant transition-colors hover:text-primary">
+                  Mis órdenes
+                </Link>
                 <span className="font-body text-xs text-on-surface-variant">{user.name}</span>
                 <button onClick={logout} className="font-body text-xs text-on-surface-variant underline transition-colors hover:text-primary">
                   Salir
@@ -179,6 +182,40 @@ export default function Header() {
                 </Link>
               </li>
             ))}
+            {user && (
+              <>
+                <li>
+                  <Link
+                    href="/mis-ordenes"
+                    className={`block rounded-md px-4 py-3 font-body text-sm font-medium uppercase tracking-widest transition-colors ${
+                      pathname === '/mis-ordenes'
+                        ? 'bg-primary-container text-on-primary-container'
+                        : 'text-on-surface-variant hover:bg-surface-container'
+                    }`}
+                  >
+                    Mis órdenes
+                  </Link>
+                </li>
+                <li className="border-t border-outline-variant/50 pt-2">
+                  <div className="flex items-center justify-between px-4 py-2">
+                    <span className="font-body text-xs text-on-surface-variant">{user.name}</span>
+                    <button onClick={logout} className="font-body text-xs text-on-surface-variant underline transition-colors hover:text-primary">
+                      Cerrar sesión
+                    </button>
+                  </div>
+                </li>
+              </>
+            )}
+            {!user && (
+              <li>
+                <Link
+                  href="/iniciar-sesion"
+                  className="block rounded-md px-4 py-3 font-body text-sm font-medium uppercase tracking-widest text-on-surface-variant hover:bg-surface-container transition-colors"
+                >
+                  Entrar
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       </div>

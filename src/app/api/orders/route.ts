@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-
-const orders: Record<string, unknown>[] = [];
+import { cookies } from 'next/headers';
+import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -14,17 +14,27 @@ export async function POST(request: Request) {
       );
     }
 
+    let userId: string | undefined;
+    try {
+      const cookieStore = await cookies();
+      const token = cookieStore.get('auth-token')?.value;
+      if (token) {
+        const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+        userId = payload.id;
+      }
+    } catch {}
+
     const order = {
       id: `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      userId,
       items,
       shipping,
       total,
-      status: 'confirmed',
+      status: 'confirmed' as const,
       createdAt: new Date().toISOString(),
     };
 
-    orders.push(order);
-    console.log('[Orden] Nueva orden creada:', order.id);
+    db.orders.set([...db.orders.get(), order]);
 
     return NextResponse.json({ order }, { status: 201 });
   } catch {
@@ -32,5 +42,32 @@ export async function POST(request: Request) {
       { error: 'Error al crear la orden' },
       { status: 500 }
     );
+  }
+}
+
+export async function GET() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+
+    if (!token) {
+      return NextResponse.json({ orders: [] });
+    }
+
+    let userId: string;
+    try {
+      const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+      userId = payload.id;
+    } catch {
+      return NextResponse.json({ orders: [] });
+    }
+
+    const orders = db.orders.get()
+      .filter(o => o.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return NextResponse.json({ orders });
+  } catch {
+    return NextResponse.json({ orders: [] });
   }
 }

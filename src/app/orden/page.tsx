@@ -1,12 +1,21 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 
 function OrderContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
+
+  useEffect(() => {
+    if (!orderId) {
+      router.replace('/');
+    }
+  }, [orderId, router]);
+
+  if (!orderId) return null;
 
   return (
     <div className="container-store py-12">
@@ -20,14 +29,12 @@ function OrderContent() {
         <p className="mt-3 font-body text-base text-on-surface-variant">
           Gracias por tu compra. Te enviaremos un correo con los detalles de tu pedido.
         </p>
-        {orderId && (
-          <div className="mt-6 rounded-lg bg-surface-container-low p-4">
-            <p className="font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-              Número de orden
-            </p>
-            <p className="mt-1 font-heading text-lg font-medium text-primary">{orderId}</p>
-          </div>
-        )}
+        <div className="mt-6 rounded-lg bg-surface-container-low p-4">
+          <p className="font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">
+            Número de orden
+          </p>
+          <p className="mt-1 font-heading text-lg font-medium text-primary">{orderId}</p>
+        </div>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Link href="/" className="btn-primary">
             Volver al inicio
