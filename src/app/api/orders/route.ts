@@ -1,26 +1,55 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { db } from '@/lib/db';
+import { verifyUserToken } from '@/lib/auth';
+
+const createOrderSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.string(),
+        name: z.string().min(1),
+        price: z.number().positive(),
+        quantity: z.number().int().positive(),
+        color: z.string().optional(),
+      })
+    )
+    .min(1),
+  shipping: z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().min(1),
+    address: z.string().min(1),
+    city: z.string().min(1),
+    state: z.string().min(1),
+    zip: z.string().min(1),
+    notes: z.string().optional(),
+  }),
+  total: z.number().positive(),
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, shipping, total } = body;
+    const parsed = createOrderSchema.safeParse(body);
 
-    if (!items?.length || !shipping || !total) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Datos de orden incompletos' },
+        { error: 'Datos de orden incompletos o inválidos' },
         { status: 400 }
       );
     }
+
+    const { items, shipping, total } = parsed.data;
 
     let userId: string | undefined;
     try {
       const cookieStore = await cookies();
       const token = cookieStore.get('auth-token')?.value;
       if (token) {
-        const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-        userId = payload.id;
+        const payload = await verifyUserToken(token);
+        userId = payload?.id;
       }
     } catch {}
 
@@ -54,17 +83,18 @@ export async function GET() {
       return NextResponse.json({ orders: [] });
     }
 
-    let userId: string;
-    try {
-      const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-      userId = payload.id;
-    } catch {
+    const payload = await verifyUserToken(token);
+    if (!payload) {
       return NextResponse.json({ orders: [] });
     }
 
-    const orders = db.orders.get()
-      .filter(o => o.userId === userId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const orders = db.orders
+      .get()
+      .filter((o) => o.userId === payload.id)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
     return NextResponse.json({ orders });
   } catch {

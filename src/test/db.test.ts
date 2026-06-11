@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { resetStore } from '@/lib/store';
 
 beforeEach(() => {
-  (globalThis as any).__products = undefined;
-  (globalThis as any).__orders = undefined;
-  (globalThis as any).__users = undefined;
-  (globalThis as any).__adminInitialized = false;
+  const g = globalThis as Record<string, unknown>;
+  g.__store_data = undefined;
+  g.__adminInitialized = false;
+  resetStore();
 });
 
 describe('db store (import-time seeding)', () => {
@@ -21,7 +22,7 @@ describe('db store (import-time seeding)', () => {
     expect(db.orders.get()).toEqual([]);
   });
 
-  it('preserves products across multiple accesses via globalThis', async () => {
+  it('preserves products across multiple accesses via singleton', async () => {
     const { db } = await import('@/lib/db');
     const initialCount = db.products.get().length;
     db.products.set(db.products.get().filter(p => p.category === 'fundas'));
@@ -37,7 +38,7 @@ describe('db users', () => {
     expect(db.users.get()).toEqual([]);
   });
 
-  it('persists across re-imports via globalThis', async () => {
+  it('persists across re-imports via singleton', async () => {
     const { db } = await import('@/lib/db');
     db.users.get().push({ id: '1', name: 'Test', email: 'test@test.com', password: 'hash' });
     const { db: db2 } = await import('@/lib/db');

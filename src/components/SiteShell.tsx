@@ -11,7 +11,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {!isAdmin && <Header />}
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1 pt-6">{children}</main>
       {!isAdmin && <Footer />}
     </>
   );

@@ -3,17 +3,22 @@
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/context/ToastContext';
 import { products, formatPrice } from '@/lib/products';
 import ProductImage from '@/components/ProductImage';
+import Spinner from '@/components/Spinner';
+import { personalizadoSchema, formatZodErrors } from '@/lib/validation';
 
 export default function PersonalizadosPage() {
   const router = useRouter();
   const { addItem } = useCart();
+  const { addToast } = useToast();
   const [selectedType, setSelectedType] = useState<'funda' | 'termo' | 'pack'>('funda');
   const [designDescription, setDesignDescription] = useState('');
   const [fileName, setFileName] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const customProducts = products.filter(p => p.category === 'personalizados');
   const selectedProduct = selectedType === 'funda'
@@ -29,8 +34,15 @@ export default function PersonalizadosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    setErrors({});
 
+    const result = personalizadoSchema.safeParse({ description: designDescription });
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error.issues));
+      return;
+    }
+
+    if (!selectedProduct) return;
     setIsSubmitting(true);
 
     try {
@@ -50,6 +62,7 @@ export default function PersonalizadosPage() {
 
     addItem(selectedProduct);
     setIsSubmitting(false);
+    addToast(`${selectedProduct.name} agregado al carrito`, 'success');
     setSubmitted(true);
   };
 
@@ -96,11 +109,11 @@ export default function PersonalizadosPage() {
       <div className="grid gap-12 lg:grid-cols-2">
         <div>
           <div className="mb-8 flex gap-3">
-            {[
+            {([
               { value: 'funda' as const, label: 'Funda' },
               { value: 'termo' as const, label: 'Termo' },
               { value: 'pack' as const, label: 'Pack' },
-            ].map((type) => (
+            ]).map((type) => (
               <button
                 key={type.value}
                 onClick={() => setSelectedType(type.value)}
@@ -115,7 +128,7 @@ export default function PersonalizadosPage() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
             <div>
               <label htmlFor="design-description" className="mb-2 block font-body text-sm font-medium text-on-surface-variant uppercase tracking-wider">
                 ¿Qué diseño tienes en mente? *
@@ -126,9 +139,10 @@ export default function PersonalizadosPage() {
                 onChange={(e) => setDesignDescription(e.target.value)}
                 placeholder="Describe tu idea: colores, texto, imágenes, estilo..."
                 rows={5}
-                className="input-field resize-none"
+                className={`input-field resize-none ${errors.description ? 'border-error' : ''}`}
                 required
               />
+              {errors.description && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.description}</p>}
             </div>
 
             <div>
@@ -164,7 +178,9 @@ export default function PersonalizadosPage() {
             </div>
 
             <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Agregando...' : `Agregar al carrito — ${selectedProduct ? formatPrice(selectedProduct.price) : ''}`}
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2"><Spinner /> Agregando...</span>
+              ) : `Agregar al carrito — ${selectedProduct ? formatPrice(selectedProduct.price) : ''}`}
             </button>
           </form>
         </div>

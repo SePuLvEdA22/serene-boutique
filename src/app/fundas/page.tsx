@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     description:
       "Protege tu dispositivo con estilo. Colección de fundas con diseños exclusivos.",
   },
+  alternates: { canonical: "/fundas" },
 };
 
 export default function FundasPage() {

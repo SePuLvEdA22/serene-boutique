@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Devoluciones | Switch&Tech',
   description: 'Política de devoluciones y cambios. Si no estás satisfecho con tu compra, te ayudamos.',
+  alternates: { canonical: '/devoluciones' },
 };
 
 export default function DevolucionesPage() {

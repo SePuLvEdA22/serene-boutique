@@ -9,15 +9,34 @@ const sidebarLinks = [
   { href: '/admin/productos', label: 'Productos', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
   { href: '/admin/pedidos', label: 'Pedidos', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
   { href: '/admin/usuarios', label: 'Usuarios', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+  { href: '/admin/inventario', label: 'Inventario', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [checking, setChecking] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isLoginPage = pathname === '/admin/login';
+
+  useEffect(() => {
+    if (isLoginPage) {
+      setChecking(false);
+      return;
+    }
+    fetch('/api/admin/stats')
+      .then(res => {
+        if (res.status === 401) {
+          router.replace('/admin/login');
+        }
+      })
+      .catch(() => {
+        router.replace('/admin/login');
+      })
+      .finally(() => setChecking(false));
+  }, [isLoginPage, router]);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') setSidebarOpen(false);
@@ -34,6 +53,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  if (checking) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-surface-container-low">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   return (
@@ -91,17 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        <div className="absolute bottom-4 left-0 right-0 px-4">
-          <Link
-            href="/"
-            className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Volver a la tienda
-          </Link>
-        </div>
+
       </aside>
 
       {/* Main content */}

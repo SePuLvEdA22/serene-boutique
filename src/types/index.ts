@@ -10,6 +10,7 @@ export interface Product {
   category: Category;
   featured: boolean;
   colors?: string[];
+  stock?: number;
   createdAt: string;
 }
 

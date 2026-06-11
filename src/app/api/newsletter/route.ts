@@ -1,25 +1,33 @@
 import { NextResponse } from 'next/server';
+import { newsletterSchema } from '@/lib/validation';
+import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 const subscribers: string[] = [];
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email } = body;
-
-    if (!email) {
+    const rl = checkRateLimit(rateLimitKey(request), {
+      maxRequests: 3,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
       return NextResponse.json(
-        { error: 'El email es obligatorio' },
-        { status: 400 }
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
       );
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const body = await request.json();
+    const parsed = newsletterSchema.safeParse(body);
+
+    if (!parsed.success) {
       return NextResponse.json(
         { error: 'Email inválido' },
         { status: 400 }
       );
     }
+
+    const { email } = parsed.data;
 
     if (subscribers.includes(email)) {
       return NextResponse.json(

@@ -1,29 +1,41 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Spinner from '@/components/Spinner';
+import { contactSchema, formatZodErrors } from '@/lib/validation';
 
 export default function ContactoPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus('loading');
+    setErrors({});
     setErrorMsg('');
 
     const form = e.currentTarget;
+    const formData = new FormData(form);
     const data = {
-      name: (form.elements.namedItem('name') as HTMLInputElement).value,
-      email: (form.elements.namedItem('email') as HTMLInputElement).value,
-      subject: (form.elements.namedItem('subject') as HTMLInputElement).value,
-      message: (form.elements.namedItem('message') as HTMLTextAreaElement).value,
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      subject: formData.get('subject') as string,
+      message: formData.get('message') as string,
     };
+
+    const result = contactSchema.safeParse(data);
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error.issues));
+      return;
+    }
+
+    setStatus('loading');
 
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(result.data),
       });
 
       if (!res.ok) {
@@ -53,7 +65,7 @@ export default function ContactoPage() {
             Gracias por contactarnos. Te responderemos a la brevedad.
           </p>
           <button
-            onClick={() => setStatus('idle')}
+            onClick={() => { setStatus('idle'); setErrors({}); }}
             className="btn-primary mt-6"
           >
             Enviar otro mensaje
@@ -73,38 +85,68 @@ export default function ContactoPage() {
       </div>
 
       <div className="grid gap-12 lg:grid-cols-2">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="name" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                 Nombre *
               </label>
-              <input id="name" name="name" type="text" className="input-field" required />
+              <input
+                id="name"
+                name="name"
+                type="text"
+                className={`input-field ${errors.name ? 'border-error' : ''}`}
+                required
+              />
+              {errors.name && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.name}</p>}
             </div>
             <div>
               <label htmlFor="email" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                 Email *
               </label>
-              <input id="email" name="email" type="email" className="input-field" required />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                className={`input-field ${errors.email ? 'border-error' : ''}`}
+                required
+              />
+              {errors.email && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.email}</p>}
             </div>
           </div>
           <div>
             <label htmlFor="subject" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
               Asunto *
             </label>
-            <input id="subject" name="subject" type="text" className="input-field" required />
+            <input
+              id="subject"
+              name="subject"
+              type="text"
+              className={`input-field ${errors.subject ? 'border-error' : ''}`}
+              required
+            />
+            {errors.subject && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.subject}</p>}
           </div>
           <div>
             <label htmlFor="message" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
               Mensaje *
             </label>
-            <textarea id="message" name="message" rows={6} className="input-field resize-none" required />
+            <textarea
+              id="message"
+              name="message"
+              rows={6}
+              className={`input-field resize-none ${errors.message ? 'border-error' : ''}`}
+              required
+            />
+            {errors.message && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.message}</p>}
           </div>
           {status === 'error' && (
             <p className="font-body text-sm text-error" role="alert">{errorMsg}</p>
           )}
           <button type="submit" className="btn-primary" disabled={status === 'loading'}>
-            {status === 'loading' ? 'Enviando...' : 'Enviar mensaje'}
+            {status === 'loading' ? (
+              <span className="flex items-center justify-center gap-2"><Spinner /> Enviando...</span>
+            ) : 'Enviar mensaje'}
           </button>
         </form>
 
@@ -135,16 +177,18 @@ export default function ContactoPage() {
             </p>
             <div className="mt-4 flex gap-3">
               {[
-                { name: 'Instagram', label: 'Instagram' },
-                { name: 'Facebook', label: 'Facebook' },
-                { name: 'TikTok', label: 'TikTok' },
-                { name: 'Pinterest', label: 'Pinterest' },
+                { name: 'Instagram', url: 'https://instagram.com/switchandtech' },
+                { name: 'Facebook', url: 'https://facebook.com/switchandtech' },
+                { name: 'TikTok', url: 'https://tiktok.com/@switchandtech' },
+                { name: 'Pinterest', url: 'https://pinterest.com/switchandtech' },
               ].map((social) => (
                 <a
                   key={social.name}
-                  href="#"
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant text-sm text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
-                  aria-label={social.label}
+                  aria-label={social.name}
                 >
                   {social.name[0]}
                 </a>

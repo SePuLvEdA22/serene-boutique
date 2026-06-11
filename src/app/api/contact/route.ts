@@ -1,29 +1,35 @@
 import { NextResponse } from 'next/server';
+import { contactSchema } from '@/lib/validation';
+import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 const contacts: { name: string; email: string; subject: string; message: string }[] = [];
 
 export async function POST(request: Request) {
   try {
+    const rl = checkRateLimit(rateLimitKey(request), {
+      maxRequests: 3,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiados mensajes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const { name, email, subject, message } = body;
+    const parsed = contactSchema.safeParse(body);
 
-    if (!name || !email || !subject || !message) {
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
       return NextResponse.json(
-        { error: 'Todos los campos son obligatorios' },
+        { error: firstError?.message || 'Datos inválidos' },
         { status: 400 }
       );
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { error: 'Email inválido' },
-        { status: 400 }
-      );
-    }
-
-    contacts.push({ name, email, subject, message });
-
-    console.log('[Contacto] Mensaje recibido:', { name, email, subject });
+    contacts.push(parsed.data);
+    console.log('[Contacto] Mensaje recibido:', parsed.data.email);
 
     return NextResponse.json(
       { message: 'Mensaje enviado correctamente' },

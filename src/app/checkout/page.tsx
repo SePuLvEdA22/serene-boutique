@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/lib/products';
+import Spinner from '@/components/Spinner';
+import { shippingSchema, formatZodErrors } from '@/lib/validation';
 
 type Step = 'shipping' | 'payment' | 'confirm';
 
@@ -13,6 +15,7 @@ export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const [step, setStep] = useState<Step>('shipping');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
 
   const [shipping, setShipping] = useState({
@@ -51,6 +54,14 @@ export default function CheckoutPage() {
 
   const handleShippingSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
+
+    const result = shippingSchema.safeParse(shipping);
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error.issues));
+      return;
+    }
+
     setStep('payment');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -121,52 +132,103 @@ export default function CheckoutPage() {
       <div className="grid gap-12 lg:grid-cols-5">
         <div className="lg:col-span-3">
           {step === 'shipping' && (
-            <form onSubmit={handleShippingSubmit} className="flex flex-col gap-5">
+            <form onSubmit={handleShippingSubmit} className="flex flex-col gap-5" noValidate>
               <h2 className="font-heading text-2xl font-medium text-on-surface">Información de envío</h2>
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label htmlFor="s-name" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                     Nombre completo *
                   </label>
-                  <input id="s-name" value={shipping.name} onChange={(e) => setShipping({ ...shipping, name: e.target.value })} className="input-field" required />
+                  <input
+                    id="s-name"
+                    value={shipping.name}
+                    onChange={(e) => setShipping({ ...shipping, name: e.target.value })}
+                    className={`input-field ${errors.name ? 'border-error' : ''}`}
+                    required
+                  />
+                  {errors.name && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.name}</p>}
                 </div>
                 <div>
                   <label htmlFor="s-email" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                     Email *
                   </label>
-                  <input id="s-email" type="email" value={shipping.email} onChange={(e) => setShipping({ ...shipping, email: e.target.value })} className="input-field" required />
+                  <input
+                    id="s-email"
+                    type="email"
+                    value={shipping.email}
+                    onChange={(e) => setShipping({ ...shipping, email: e.target.value })}
+                    className={`input-field ${errors.email ? 'border-error' : ''}`}
+                    required
+                  />
+                  {errors.email && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.email}</p>}
                 </div>
               </div>
               <div>
                 <label htmlFor="s-phone" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                   Teléfono *
                 </label>
-                <input id="s-phone" type="tel" value={shipping.phone} onChange={(e) => setShipping({ ...shipping, phone: e.target.value })} className="input-field" required />
+                <input
+                  id="s-phone"
+                  type="tel"
+                  value={shipping.phone}
+                  onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
+                  className={`input-field ${errors.phone ? 'border-error' : ''}`}
+                  required
+                />
+                {errors.phone && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.phone}</p>}
               </div>
               <div>
                 <label htmlFor="s-address" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                   Dirección *
                 </label>
-                <input id="s-address" value={shipping.address} onChange={(e) => setShipping({ ...shipping, address: e.target.value })} className="input-field" required />
+                <input
+                  id="s-address"
+                  value={shipping.address}
+                  onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
+                  className={`input-field ${errors.address ? 'border-error' : ''}`}
+                  required
+                />
+                {errors.address && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.address}</p>}
               </div>
               <div className="grid gap-5 sm:grid-cols-3">
                 <div>
                   <label htmlFor="s-city" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                     Ciudad *
                   </label>
-                  <input id="s-city" value={shipping.city} onChange={(e) => setShipping({ ...shipping, city: e.target.value })} className="input-field" required />
+                  <input
+                    id="s-city"
+                    value={shipping.city}
+                    onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
+                    className={`input-field ${errors.city ? 'border-error' : ''}`}
+                    required
+                  />
+                  {errors.city && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.city}</p>}
                 </div>
                 <div>
                   <label htmlFor="s-state" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                     Estado *
                   </label>
-                  <input id="s-state" value={shipping.state} onChange={(e) => setShipping({ ...shipping, state: e.target.value })} className="input-field" required />
+                  <input
+                    id="s-state"
+                    value={shipping.state}
+                    onChange={(e) => setShipping({ ...shipping, state: e.target.value })}
+                    className={`input-field ${errors.state ? 'border-error' : ''}`}
+                    required
+                  />
+                  {errors.state && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.state}</p>}
                 </div>
                 <div>
                   <label htmlFor="s-zip" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
                     CP *
                   </label>
-                  <input id="s-zip" value={shipping.zip} onChange={(e) => setShipping({ ...shipping, zip: e.target.value })} className="input-field" required />
+                  <input
+                    id="s-zip"
+                    value={shipping.zip}
+                    onChange={(e) => setShipping({ ...shipping, zip: e.target.value })}
+                    className={`input-field ${errors.zip ? 'border-error' : ''}`}
+                    required
+                  />
+                  {errors.zip && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.zip}</p>}
                 </div>
               </div>
               <div>
@@ -185,8 +247,13 @@ export default function CheckoutPage() {
             <form onSubmit={handlePaymentSubmit} className="flex flex-col gap-5">
               <h2 className="font-heading text-2xl font-medium text-on-surface">Información de pago</h2>
               <div className="rounded-xl border border-outline-variant bg-surface-container-low p-4">
-                <p className="font-body text-sm text-on-surface-variant">
-                  Este es un entorno de prueba. No se realizarán cargos reales.
+                <p className="font-body text-sm text-on-surface-variant leading-relaxed whitespace-pre-line">
+                  {'🧪 Entorno de prueba — No se realizarán cargos reales.\n\n' +
+                    'Tarjetas de prueba disponibles:\n' +
+                    '  • Visa: 4000 0000 0000 0004\n' +
+                    '  • Mastercard: 5031 7557 3453 0604\n' +
+                    '  • American Express: 3739 5334 5237 9004\n\n' +
+                    'Cualquier fecha futura y CVC 123 funcionan.'}
                 </p>
               </div>
               <div>
@@ -221,7 +288,9 @@ export default function CheckoutPage() {
                   Volver
                 </button>
                 <button type="submit" className="btn-primary flex-1" disabled={loading}>
-                  {loading ? 'Procesando...' : `Pagar ${formatPrice(totalPrice)}`}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2"><Spinner /> Procesando...</span>
+                  ) : `Pagar ${formatPrice(totalPrice)}`}
                 </button>
               </div>
             </form>

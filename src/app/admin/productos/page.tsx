@@ -64,6 +64,7 @@ export default function AdminProductosPage() {
                 <th className="px-4 py-3 font-medium">Producto</th>
                 <th className="px-4 py-3 font-medium">Categoría</th>
                 <th className="px-4 py-3 font-medium">Precio</th>
+                <th className="px-4 py-3 font-medium">Stock</th>
                 <th className="px-4 py-3 font-medium">Destacado</th>
                 <th className="px-4 py-3 font-medium">Acciones</th>
               </tr>
@@ -77,6 +78,19 @@ export default function AdminProductosPage() {
                   </td>
                   <td className="px-4 py-3 capitalize text-on-surface-variant">{product.category}</td>
                   <td className="px-4 py-3 text-on-surface">{formatPrice(product.price)}</td>
+                  <td className="px-4 py-3">
+                    {product.stock !== undefined ? (
+                      <span className={`chip ${
+                        product.stock <= 0 ? 'bg-red-100 text-red-600' :
+                        product.stock < 10 ? 'bg-yellow-100 text-yellow-600' :
+                        'bg-green-100 text-green-600'
+                      }`}>
+                        {product.stock <= 0 ? 'Agotado' : product.stock}
+                      </span>
+                    ) : (
+                      <span className="chip">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {product.featured ? (
                       <span className="chip bg-green-100 text-green-600">Sí</span>

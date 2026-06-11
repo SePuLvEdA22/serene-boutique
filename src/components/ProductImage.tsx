@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { type Product } from '@/types';
 
 interface ProductImageProps {
@@ -70,13 +71,13 @@ export default function ProductImage(props: ProductImageProps) {
 
   return (
     <div className={`relative overflow-hidden ${props.className || ''}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={product.image}
         alt={product.name}
-        className="h-full w-full object-cover"
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="object-cover"
         onError={() => setShowFallback(true)}
-        loading="lazy"
       />
     </div>
   );

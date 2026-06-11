@@ -104,6 +104,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const handleClear = () => dispatch({ type: 'CLEAR_CART' });
+    window.addEventListener('cart:clear', handleClear);
+    return () => window.removeEventListener('cart:clear', handleClear);
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem('switch-tech-cart', JSON.stringify(state.items));
     } catch {}

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import CartIcon from './CartIcon';
+import UserDropdown from './UserDropdown';
 
 const navLinks = [
   { href: '/', label: 'Inicio' },
@@ -118,15 +119,7 @@ export default function Header() {
           <CartIcon />
           <div className="hidden md:flex items-center gap-2">
             {user ? (
-              <div className="flex items-center gap-3">
-                <Link href="/mis-ordenes" className="font-body text-xs text-on-surface-variant transition-colors hover:text-primary">
-                  Mis órdenes
-                </Link>
-                <span className="font-body text-xs text-on-surface-variant">{user.name}</span>
-                <button onClick={logout} className="font-body text-xs text-on-surface-variant underline transition-colors hover:text-primary">
-                  Salir
-                </button>
-              </div>
+              <UserDropdown />
             ) : (
               <Link
                 href="/iniciar-sesion"
@@ -184,25 +177,40 @@ export default function Header() {
             ))}
             {user && (
               <>
+                <li className="border-b border-outline-variant/50 pb-2 mb-1">
+                  <div className="px-4 py-2">
+                    <p className="font-body text-sm font-medium text-on-surface">{user.name}</p>
+                    <p className="font-body text-xs text-on-surface-variant truncate">{user.email}</p>
+                  </div>
+                </li>
                 <li>
                   <Link
                     href="/mis-ordenes"
-                    className={`block rounded-md px-4 py-3 font-body text-sm font-medium uppercase tracking-widest transition-colors ${
+                    className={`flex items-center gap-3 rounded-md px-4 py-3 font-body text-sm transition-colors ${
                       pathname === '/mis-ordenes'
-                        ? 'bg-primary-container text-on-primary-container'
+                        ? 'bg-primary-container text-on-primary-container font-medium'
                         : 'text-on-surface-variant hover:bg-surface-container'
                     }`}
+                    onClick={() => setMobileOpen(false)}
                   >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
                     Mis órdenes
                   </Link>
                 </li>
-                <li className="border-t border-outline-variant/50 pt-2">
-                  <div className="flex items-center justify-between px-4 py-2">
-                    <span className="font-body text-xs text-on-surface-variant">{user.name}</span>
-                    <button onClick={logout} className="font-body text-xs text-on-surface-variant underline transition-colors hover:text-primary">
-                      Cerrar sesión
-                    </button>
-                  </div>
+                <li className="border-t border-outline-variant/50 pt-1 mt-1">
+                  <button
+                    onClick={() => { logout(); setMobileOpen(false); }}
+                    className="flex w-full items-center gap-3 rounded-md px-4 py-3 font-body text-sm text-error transition-colors hover:bg-red-50"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Cerrar sesión
+                  </button>
                 </li>
               </>
             )}

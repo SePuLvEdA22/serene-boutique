@@ -65,13 +65,22 @@ export default function Footer() {
               Síguenos
             </h3>
             <div className="flex gap-3">
-              {['Instagram', 'Facebook', 'TikTok', 'Pinterest'].map((social) => (
+              {[
+
+                { name: 'Instagram', url: 'https://instagram.com/switchandtech' },
+                { name: 'Facebook', url: 'https://facebook.com/switchandtech' },
+                { name: 'TikTok', url: 'https://tiktok.com/@switchandtech' },
+                { name: 'Pinterest', url: 'https://pinterest.com/switchandtech' },
+              ].map((social) => (
                 <a
-                  key={social}
-                  href="#"
+                  key={social.name}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant text-xs text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+                  aria-label={social.name}
                 >
-                  {social[0]}
+                  {social.name[0]}
                 </a>
               ))}
             </div>

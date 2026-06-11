@@ -30,6 +30,7 @@ export default function NuevoProductoPage() {
       category: (form.elements.namedItem('category') as HTMLSelectElement).value,
       featured: (form.elements.namedItem('featured') as HTMLInputElement).checked,
       colors: (form.elements.namedItem('colors') as HTMLInputElement).value.split(',').map(s => s.trim()).filter(Boolean),
+      stock: (form.elements.namedItem('stock') as HTMLInputElement).value ? Number((form.elements.namedItem('stock') as HTMLInputElement).value) : undefined,
     };
 
     try {
@@ -88,9 +89,15 @@ export default function NuevoProductoPage() {
           </div>
         </div>
 
-        <div>
-          <label htmlFor="colors" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Colores (separados por coma)</label>
-          <input id="colors" name="colors" type="text" className="input-field" placeholder="Negro, Blanco, Rosa" />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="stock" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Stock</label>
+            <input id="stock" name="stock" type="number" min="0" className="input-field" placeholder="0" />
+          </div>
+          <div>
+            <label htmlFor="colors" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Colores (separados por coma)</label>
+            <input id="colors" name="colors" type="text" className="input-field" placeholder="Negro, Blanco, Rosa" />
+          </div>
         </div>
 
         <label className="flex items-center gap-3 cursor-pointer">

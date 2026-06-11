@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'FAQ | Switch&Tech',
   description: 'Preguntas frecuentes sobre nuestros productos, envíos, devoluciones y más.',
+  alternates: { canonical: '/faq' },
 };
 
 export default function FAQPage() {

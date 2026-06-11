@@ -5,36 +5,38 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-
-function Spinner() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" opacity="0.25" />
-      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-    </svg>
-  );
-}
+import Spinner from '@/components/Spinner';
+import { loginSchema, formatZodErrors } from '@/lib/validation';
 
 export default function IniciarSesionPage() {
   const router = useRouter();
   const { login } = useAuth();
   const { addToast } = useToast();
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setErrors({});
 
     const form = e.currentTarget;
-    const err = await login(
-      (form.elements.namedItem('email') as HTMLInputElement).value,
-      (form.elements.namedItem('password') as HTMLInputElement).value
-    );
+    const formData = new FormData(form);
+    const data = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    };
+
+    const result = loginSchema.safeParse(data);
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error.issues));
+      return;
+    }
+
+    setLoading(true);
+    const err = await login(data.email, data.password);
 
     if (err) {
-      setError(err);
+      setErrors({ form: err });
       setLoading(false);
     } else {
       addToast('Sesión iniciada correctamente', 'success');
@@ -52,20 +54,34 @@ export default function IniciarSesionPage() {
           Ingresa tus datos para continuar.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5" noValidate>
           <div>
             <label htmlFor="email" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
               Email
             </label>
-            <input id="email" name="email" type="email" className="input-field" required />
+            <input
+              id="email"
+              name="email"
+              type="email"
+              className={`input-field ${errors.email ? 'border-error' : ''}`}
+              required
+            />
+            {errors.email && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.email}</p>}
           </div>
           <div>
             <label htmlFor="password" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
               Contraseña
             </label>
-            <input id="password" name="password" type="password" className="input-field" required minLength={6} />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              className={`input-field ${errors.password ? 'border-error' : ''}`}
+              required
+            />
+            {errors.password && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.password}</p>}
           </div>
-          {error && <p className="font-body text-sm text-error" role="alert">{error}</p>}
+          {errors.form && <p className="font-body text-sm text-error" role="alert">{errors.form}</p>}
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             {loading ? (
               <span className="flex items-center justify-center gap-2">

@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${product.name} | Switch&Tech`,
       description: product.description,
     },
+    alternates: { canonical: `/producto/${id}` },
   };
 }
 

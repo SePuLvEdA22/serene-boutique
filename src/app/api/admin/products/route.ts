@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       category: body.category,
       featured: Boolean(body.featured),
       colors: body.colors || [],
+      stock: body.stock !== undefined ? Number(body.stock) : undefined,
       createdAt: new Date().toISOString().split('T')[0],
     };
 

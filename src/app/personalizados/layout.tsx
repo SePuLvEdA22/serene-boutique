@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     title: "Personalizados | Switch&Tech",
     description: "Crea fundas, termos y packs con tu propio diseño.",
   },
+  alternates: { canonical: "/personalizados" },
 };
 
 export default function PersonalizadosLayout({

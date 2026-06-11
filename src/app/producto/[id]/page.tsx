@@ -88,15 +88,17 @@ function catLabel(cat: string) {
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 className="flex h-12 w-12 items-center justify-center text-lg transition-colors hover:bg-surface-container"
+                aria-label="Reducir cantidad"
               >
                 -
               </button>
-              <span className="flex h-12 w-12 items-center justify-center font-body text-base">
+              <span className="flex h-12 w-12 items-center justify-center font-body text-base" aria-live="polite" aria-atomic="true">
                 {quantity}
               </span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
                 className="flex h-12 w-12 items-center justify-center text-lg transition-all duration-150 active:scale-90 hover:bg-surface-container"
+                aria-label="Aumentar cantidad"
               >
                 +
               </button>

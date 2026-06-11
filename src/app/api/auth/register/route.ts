@@ -1,24 +1,29 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { registerSchema } from '@/lib/validation';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const body = await request.json();
+    const parsed = registerSchema.safeParse(body);
 
-    if (!name || !email || !password) {
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
+      const field = firstError?.path.join('.') || 'form';
+      const messages: Record<string, string> = {
+        name: 'El nombre debe tener al menos 2 caracteres',
+        email: 'Email inválido',
+        password: 'La contraseña debe tener al menos 6 caracteres',
+        confirm: 'Las contraseñas no coinciden',
+      };
       return NextResponse.json(
-        { error: 'Todos los campos son obligatorios' },
+        { error: messages[field] || firstError?.message || 'Datos inválidos' },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
-        { status: 400 }
-      );
-    }
+    const { name, email, password } = parsed.data;
 
     if (db.users.get().find((u) => u.email === email)) {
       return NextResponse.json(
@@ -30,8 +35,6 @@ export async function POST(request: Request) {
     const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
     db.users.get().push({ id, name, email, password: hashedPassword });
-
-    console.log('[Auth] Usuario registrado:', email);
 
     return NextResponse.json(
       { user: { id, name, email } },

@@ -6,12 +6,13 @@ import { getProductsByCategory } from "@/lib/products";
 export const metadata: Metadata = {
   title: "Termos",
   description:
-    "Lleva tu esencia a donde vayas. Termos de acero inoxidable y vidrio que mantienen la temperatura y reflejan tu estilo.",
+    "Mantén tus bebidas a la temperatura ideal con nuestros termos. Acero inoxidable, diseño elegante y resistencia superior.",
   openGraph: {
     title: "Termos | Switch&Tech",
     description:
-      "Termos que mantienen la temperatura y reflejan tu estilo. Acero inoxidable y vidrio.",
+      "Mantén tus bebidas a la temperatura ideal con nuestros termos. Acero inoxidable y diseño elegante.",
   },
+  alternates: { canonical: "/termos" },
 };
 
 export default function TermosPage() {

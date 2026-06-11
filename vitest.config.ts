@@ -9,6 +9,9 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     include: ['src/**/*.test.{ts,tsx}'],
+    env: {
+      STORE_DRIVER: 'memory',
+    },
   },
   resolve: {
     alias: {

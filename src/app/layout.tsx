@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
+import dynamic from "next/dynamic";
 import "./globals.css";
 import SiteShell from "@/components/SiteShell";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
-import CartDrawer from "@/components/CartDrawer";
 import { ToastProvider } from "@/context/ToastContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+
+const CartDrawer = dynamic(() => import("@/components/CartDrawer"));
 
 const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
@@ -21,6 +23,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://switchandtech.com"),
   title: {
     default: "Switch&Tech — Accesorios elegantes",
     template: "%s | Switch&Tech",
@@ -47,6 +50,13 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  alternates: {
+    canonical: "https://switchandtech.com",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#725856",
 };
 
 export default function RootLayout({
@@ -60,6 +70,12 @@ export default function RootLayout({
       className={`${playfairDisplay.variable} ${dmSans.variable}`}
     >
       <body className="flex min-h-dvh flex-col bg-surface font-body text-on-surface antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary focus:outline-none"
+        >
+          Saltar al contenido principal
+        </a>
         <AuthProvider>
           <ThemeProvider>
           <CartProvider>

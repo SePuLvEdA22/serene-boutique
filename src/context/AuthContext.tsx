@@ -89,6 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
+    try { localStorage.removeItem('switch-tech-cart'); } catch {}
+    window.dispatchEvent(new CustomEvent('cart:clear'));
   }, []);
 
   const addToWishlist = useCallback((productId: string) => {

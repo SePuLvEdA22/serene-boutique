@@ -43,6 +43,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       featured: body.featured !== undefined ? Boolean(body.featured) : products[index].featured,
       colors: body.colors !== undefined ? body.colors : products[index].colors,
       image: body.image !== undefined ? body.image : products[index].image,
+      stock: body.stock !== undefined ? Number(body.stock) : products[index].stock,
     };
 
     const list = [...products];

@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     title: "Contacto | Switch&Tech",
     description: "Contáctanos. Estamos aquí para ayudarte.",
   },
+  alternates: { canonical: "/contacto" },
 };
 
 export default function ContactoLayout({

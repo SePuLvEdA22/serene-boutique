@@ -1,29 +1,40 @@
 import { ImageResponse } from 'next/og';
 
-export const size = { width: 32, height: 32 };
 export const contentType = 'image/png';
 
-export default function Icon() {
+export function generateImageMetadata() {
+  return [
+    { id: '32', size: { width: 32, height: 32 } },
+    { id: '192', size: { width: 192, height: 192 } },
+    { id: '512', size: { width: 512, height: 512 } },
+  ];
+}
+
+export default async function Icon({ id }: { id: Promise<string | number> }) {
+  const size = Number(await id);
+  const fontSize = Math.round(size * 0.55);
+  const borderRadius = Math.round(size * 0.2);
+
   return new ImageResponse(
     (
       <div
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
+          width: size,
+          height: size,
+          borderRadius,
           background: '#725856',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'serif',
           fontWeight: 700,
-          fontSize: 18,
+          fontSize,
           color: '#ffffff',
         }}
       >
         S&T
       </div>
     ),
-    { ...size },
+    { width: size, height: size },
   );
 }

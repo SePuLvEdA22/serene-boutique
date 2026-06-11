@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { verifyUserToken } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -10,7 +11,11 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 200 });
     }
 
-    const payload = JSON.parse(Buffer.from(token.value, 'base64').toString('utf-8'));
+    const payload = await verifyUserToken(token.value);
+
+    if (!payload) {
+      return NextResponse.json({ user: null }, { status: 200 });
+    }
 
     return NextResponse.json({
       user: { id: payload.id, name: payload.name, email: payload.email },

@@ -6,12 +6,13 @@ import { getProductsByCategory } from "@/lib/products";
 export const metadata: Metadata = {
   title: "Cargadores",
   description:
-    "Mantén tus dispositivos siempre listos. Cargadores rápidos, inalámbricos, cables y baterías portátiles para tu día a día.",
+    "Mantén tus dispositivos siempre encendidos. Cargadores rápidos, inalámbricos y power banks con la mejor tecnología.",
   openGraph: {
     title: "Cargadores | Switch&Tech",
     description:
-      "Cargadores rápidos, inalámbricos y baterías portátiles para tu día a día.",
+      "Mantén tus dispositivos siempre encendidos. Cargadores rápidos, inalámbricos y power banks.",
   },
+  alternates: { canonical: "/cargadores" },
 };
 
 export default function CargadoresPage() {

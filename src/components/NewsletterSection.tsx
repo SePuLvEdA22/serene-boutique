@@ -1,13 +1,24 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { newsletterSchema, formatZodErrors } from '@/lib/validation';
+import Spinner from '@/components/Spinner';
 
 export default function NewsletterSection() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError('');
+
+    const result = newsletterSchema.safeParse({ email });
+    if (!result.success) {
+      setError(formatZodErrors(result.error.issues).email || 'Email inválido');
+      return;
+    }
+
     setStatus('loading');
 
     try {
@@ -36,26 +47,32 @@ export default function NewsletterSection() {
       <form
         className="mx-auto mt-6 flex max-w-md gap-3"
         onSubmit={handleSubmit}
+        noValidate
       >
         <label htmlFor="newsletter-email" className="sr-only">
           Correo electrónico
         </label>
-        <input
-          id="newsletter-email"
-          type="email"
-          placeholder="Tu correo electrónico"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="input-field flex-1"
-          required
-          disabled={status === 'loading' || status === 'success'}
-        />
+        <div className="flex-1">
+          <input
+            id="newsletter-email"
+            type="email"
+            placeholder="Tu correo electrónico"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setError(''); }}
+            className={`input-field ${error ? 'border-error' : ''}`}
+            required
+            disabled={status === 'loading' || status === 'success'}
+          />
+          {error && <p className="mt-1 text-left font-body text-xs text-error" role="alert">{error}</p>}
+        </div>
         <button
           type="submit"
           className="btn-primary whitespace-nowrap"
           disabled={status === 'loading' || status === 'success'}
         >
-          {status === 'loading' ? 'Enviando...' : status === 'success' ? '¡Suscrito!' : 'Suscribirse'}
+          {status === 'loading' ? (
+            <span className="flex items-center gap-2"><Spinner /> Enviando...</span>
+          ) : status === 'success' ? '¡Suscrito!' : 'Suscribirse'}
         </button>
       </form>
       {status === 'error' && (

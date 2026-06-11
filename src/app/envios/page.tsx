@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Envíos | Switch&Tech',
   description: 'Conoce nuestras políticas y tiempos de envío. Envíos a toda la República Mexicana.',
+  alternates: { canonical: '/envios' },
 };
 
 export default function EnviosPage() {
