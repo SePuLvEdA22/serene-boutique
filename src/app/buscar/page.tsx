@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type Product } from '@/types';
-import { formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
 import ProductImage from '@/components/ProductImage';
 
 interface Pagination {

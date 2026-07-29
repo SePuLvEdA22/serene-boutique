@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { db } from './db';
+import { getUserRepo } from './repositories';
 import { verifyAdminToken, signAdminToken } from './auth';
 
 function getAdminEmail(): string {
@@ -15,11 +16,11 @@ export function ensureAdminUser() {
   if (db.adminInitialized) return;
 
   const email = getAdminEmail();
-  const existing = db.users.get().find((u) => u.email === email && u.isAdmin);
+  const existing = getUserRepo().findByEmail(email);
 
-  if (!existing) {
+  if (!existing || !existing.isAdmin) {
     const password = getAdminPassword();
-    db.users.get().push({
+    getUserRepo().create({
       id: 'admin-1',
       name: 'Administrador',
       email,
@@ -42,8 +43,9 @@ export async function requireAdmin() {
   const payload = await verifyAdminToken(token);
   if (!payload) return null;
 
-  const user = db.users.get().find((u) => u.id === payload.userId && u.isAdmin);
-  return user || null;
+  const user = getUserRepo().findById(payload.userId);
+  if (!user?.isAdmin) return null;
+  return user;
 }
 
 export { verifyAdminToken, signAdminToken };

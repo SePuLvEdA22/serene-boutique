@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/context/ToastContext';
-import { products, formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
+import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
 import Spinner from '@/components/Spinner';
 import { personalizadoSchema, formatZodErrors } from '@/lib/validation';
@@ -19,13 +20,24 @@ export default function PersonalizadosPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [customProducts, setCustomProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const customProducts = products.filter(p => p.category === 'personalizados');
-  const selectedProduct = selectedType === 'funda'
-    ? customProducts[0]
-    : selectedType === 'termo'
-    ? customProducts[1]
-    : customProducts[2];
+  useEffect(() => {
+    fetch('/api/products?category=personalizados')
+      .then(res => res.json())
+      .then(data => setCustomProducts(data.products))
+      .catch(() => setCustomProducts([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const selectedProduct = loading ? null : (
+    selectedType === 'funda'
+      ? customProducts[0]
+      : selectedType === 'termo'
+      ? customProducts[1]
+      : customProducts[2]
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,6 +77,16 @@ export default function PersonalizadosPage() {
     addToast(`${selectedProduct.name} agregado al carrito`, 'success');
     setSubmitted(true);
   };
+
+  if (loading) {
+    return (
+      <div className="container-store py-12">
+        <div className="flex items-center justify-center py-20">
+          <Spinner />
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

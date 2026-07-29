@@ -1,51 +1,30 @@
-import type { Product } from '@/types';
+import type { Product } from '@/lib/models';
+import type { User } from '@/lib/models';
+import type { Order } from '@/lib/models';
+import type { Contact } from '@/lib/models';
+import type { Subscriber } from '@/lib/models';
 
-export interface StoreUser {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  isAdmin?: boolean;
-}
-
-export interface StoreOrder {
-  id: string;
-  userId?: string;
-  items: Array<{
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    color?: string;
-  }>;
-  shipping: {
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    notes?: string;
-  };
-  total: number;
-  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  createdAt: string;
-}
+export type { Product, User as StoreUser, Order as StoreOrder, Contact, Subscriber };
 
 export interface StoreData {
-  users: StoreUser[];
+  users: User[];
   products: Product[];
-  orders: StoreOrder[];
+  orders: Order[];
+  contacts: Contact[];
+  subscribers: Subscriber[];
 }
 
 export interface DataStore {
-  getUsers(): StoreUser[];
-  setUsers(users: StoreUser[]): void;
+  getUsers(): User[];
+  setUsers(users: User[]): void;
   getProducts(): Product[];
   setProducts(products: Product[]): void;
-  getOrders(): StoreOrder[];
-  setOrders(orders: StoreOrder[]): void;
+  getOrders(): Order[];
+  setOrders(orders: Order[]): void;
+  getContacts(): Contact[];
+  setContacts(contacts: Contact[]): void;
+  getSubscribers(): Subscriber[];
+  setSubscribers(subscribers: Subscriber[]): void;
   getAdminInitialized(): boolean;
   setAdminInitialized(val: boolean): void;
 }

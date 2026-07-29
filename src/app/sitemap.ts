@@ -1,7 +1,17 @@
 import type { MetadataRoute } from "next";
+import { getProductRepo } from '@/lib/repositories';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://switchandtech.com";
+
+  const products = getProductRepo().findAll();
+
+  const productUrls = products.map((product) => ({
+    url: `${baseUrl}/producto/${product.id}`,
+    lastModified: new Date(product.createdAt),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
 
   return [
     { url: baseUrl, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
@@ -13,5 +23,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/envios`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
     { url: `${baseUrl}/devoluciones`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
     { url: `${baseUrl}/faq`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
+    { url: `${baseUrl}/privacidad`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
+    { url: `${baseUrl}/terminos`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
+    ...productUrls,
   ];
 }

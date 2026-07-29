@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
 import ProductImage from './ProductImage';
 
 export default function CartDrawer() {

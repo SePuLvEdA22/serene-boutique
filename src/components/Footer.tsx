@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="mt-auto border-t border-outline-variant/50 bg-surface-container-low">
       <div className="container-store py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <Link href="/" className="font-heading text-2xl font-medium tracking-tight text-on-surface">
               Switch&Tech
@@ -49,6 +49,27 @@ export default function Footer() {
                 { href: '/faq', label: 'FAQ' },
               ].map((link) => (
                 <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="font-body text-sm text-on-surface-variant transition-colors hover:text-primary"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="mb-4 font-body text-xs font-medium uppercase tracking-[0.15em] text-on-surface-variant">
+              Legal
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {[
+                { href: '/privacidad', label: 'Privacidad' },
+                { href: '/terminos', label: 'Términos' },
+              ].map((link) => (
+                <li key={link.href}>
                   <Link
                     href={link.href}
                     className="font-body text-sm text-on-surface-variant transition-colors hover:text-primary"

@@ -1,12 +1,14 @@
-import type { Product } from '@/types';
-import type { DataStore, StoreData, StoreUser, StoreOrder } from './types';
+import type { DataStore, StoreData, StoreUser, StoreOrder, Contact, Subscriber } from './types';
 import { initialProducts } from '@/lib/product-data';
+import type { Product } from '@/lib/models';
 
 function defaultData(): StoreData {
   return {
     users: [],
-    products: [...initialProducts],
+    products: [...initialProducts] as Product[],
     orders: [],
+    contacts: [],
+    subscribers: [],
   };
 }
 
@@ -31,6 +33,10 @@ export class MemoryStore implements DataStore {
   setProducts(products: Product[]): void { this.data.products = products; }
   getOrders(): StoreOrder[] { return this.data.orders; }
   setOrders(orders: StoreOrder[]): void { this.data.orders = orders; }
+  getContacts(): Contact[] { return this.data.contacts; }
+  setContacts(contacts: Contact[]): void { this.data.contacts = contacts; }
+  getSubscribers(): Subscriber[] { return this.data.subscribers; }
+  setSubscribers(subscribers: Subscriber[]): void { this.data.subscribers = subscribers; }
   getAdminInitialized(): boolean { return this._adminInitialized; }
   setAdminInitialized(val: boolean): void { this._adminInitialized = val; }
 }

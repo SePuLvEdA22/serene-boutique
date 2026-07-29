@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { newsletterSchema } from '@/lib/validation';
 import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
-
-const subscribers: string[] = [];
+import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -28,15 +27,22 @@ export async function POST(request: Request) {
     }
 
     const { email } = parsed.data;
+    const existing = db.subscribers.get().find(s => s.email === email);
 
-    if (subscribers.includes(email)) {
+    if (existing) {
       return NextResponse.json(
         { message: 'Ya estás suscrito' },
         { status: 200 }
       );
     }
 
-    subscribers.push(email);
+    const subscriber = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      email,
+      subscribedAt: new Date().toISOString(),
+    };
+
+    db.subscribers.set([...db.subscribers.get(), subscriber]);
     console.log('[Newsletter] Nuevo suscriptor:', email);
 
     return NextResponse.json(

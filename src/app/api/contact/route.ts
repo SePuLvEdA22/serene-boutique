@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { contactSchema } from '@/lib/validation';
 import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
-
-const contacts: { name: string; email: string; subject: string; message: string }[] = [];
+import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -28,8 +27,14 @@ export async function POST(request: Request) {
       );
     }
 
-    contacts.push(parsed.data);
-    console.log('[Contacto] Mensaje recibido:', parsed.data.email);
+    const contact = {
+      id: `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ...parsed.data,
+      createdAt: new Date().toISOString(),
+    };
+
+    db.contacts.set([...db.contacts.get(), contact]);
+    console.log('[Contacto] Mensaje recibido:', contact.email);
 
     return NextResponse.json(
       { message: 'Mensaje enviado correctamente' },

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { products } from '@/lib/products';
+import { getProductRepo } from '@/lib/repositories';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -8,20 +8,14 @@ export async function GET(request: Request) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)));
 
-  let result = [...products];
+  let result = getProductRepo().findAll();
 
-  if (category) {
-    result = result.filter((p) => p.category === category);
+  if (category && (category === 'fundas' || category === 'cargadores' || category === 'termos' || category === 'personalizados')) {
+    result = getProductRepo().findByCategory(category);
   }
 
   if (search) {
-    const q = search.toLowerCase();
-    result = result.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-    );
+    result = getProductRepo().search(search);
   }
 
   const total = result.length;

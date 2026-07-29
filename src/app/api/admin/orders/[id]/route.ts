@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { getOrderRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
-import { type StoreOrder } from '@/lib/db';
 
 const validStatuses = ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] as const;
 
@@ -17,7 +16,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const order = db.orders.get().find(o => o.id === id);
+  const order = getOrderRepo().findById(id);
 
   if (!order) {
     return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
@@ -44,19 +43,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       );
     }
 
-    const index = db.orders.get().findIndex(o => o.id === id);
-    if (index === -1) {
+    const updated = getOrderRepo().updateStatus(id, parsed.data.status);
+
+    if (!updated) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
 
-    const list = [...db.orders.get()];
-    list[index] = {
-      ...list[index],
-      status: parsed.data.status,
-    } as StoreOrder;
-    db.orders.set(list);
-
-    return NextResponse.json({ order: list[index] });
+    return NextResponse.json({ order: updated });
   } catch {
     return NextResponse.json({ error: 'Error al actualizar orden' }, { status: 500 });
   }

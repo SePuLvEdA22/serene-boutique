@@ -1,7 +1,7 @@
 'use client';
 
 import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
 import Link from 'next/link';
 import ProductImage from '@/components/ProductImage';
 

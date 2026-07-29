@@ -1,4 +1,4 @@
-import type { Product } from '@/types';
+import type { Product } from '@/lib/models';
 
 export const initialProducts: Product[] = [
   {
@@ -49,7 +49,7 @@ export const initialProducts: Product[] = [
       '/images/cargadores-rapido-02.jpeg',
     ], image: '/images/cargadores-rapido-01.jpeg',
     category: 'cargadores', featured: true,
-    stock: 50, createdAt: '2025-01-10',
+    colors: [], stock: 50, createdAt: '2025-01-10',
   },
   {
     id: 'cargador-inalambrico', name: 'Cargador Inalámbrico Dual',
@@ -59,7 +59,7 @@ export const initialProducts: Product[] = [
       '/images/cargadores-inalambrico-02.jpeg',
     ], image: '/images/cargadores-inalambrico-01.jpeg',
     category: 'cargadores', featured: true,
-    stock: 12, createdAt: '2025-02-05',
+    colors: [], stock: 12, createdAt: '2025-02-05',
   },
   {
     id: 'cable-trenzado-usb', name: 'Cable Trenzado USB-C / Lightning',
@@ -119,7 +119,7 @@ export const initialProducts: Product[] = [
       '/images/cables-trenzado-01.jpeg',
     ], image: '/images/personalizados-funda-01.jpeg',
     category: 'personalizados', featured: true,
-    stock: 0, createdAt: '2025-01-05',
+    colors: [], stock: 0, createdAt: '2025-01-05',
   },
   {
     id: 'termo-personalizado', name: 'Termo Personalizado',
@@ -129,7 +129,7 @@ export const initialProducts: Product[] = [
       '/images/termos-acero-01.jpeg',
     ], image: '/images/personalizados-termo-01.jpeg',
     category: 'personalizados', featured: true,
-    stock: 15, createdAt: '2025-02-10',
+    colors: [], stock: 15, createdAt: '2025-02-10',
   },
   {
     id: 'pack-personalizado', name: 'Pack Personalizado (Funda + Termo)',
@@ -139,8 +139,6 @@ export const initialProducts: Product[] = [
       '/images/termos-vidrio-01.jpeg',
     ], image: '/images/fundas-silicone-01.jpeg',
     category: 'personalizados', featured: false,
-    stock: 5, createdAt: '2025-03-20',
+    colors: [], stock: 5, createdAt: '2025-03-20',
   },
 ];
-
-export const products = [...initialProducts];

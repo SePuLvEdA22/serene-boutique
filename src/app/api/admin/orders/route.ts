@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getOrderRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
 
 export async function GET() {
@@ -8,5 +8,5 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  return NextResponse.json({ orders: db.orders.get() });
+  return NextResponse.json({ orders: getOrderRepo().findAll() });
 }

@@ -1,0 +1,94 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, Helger]
+  pull_request:
+    branches: [main, Helger]
+
+# Cancelar ejecuciones previas del mismo PR/rama
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Paso 1: Quality gates (lint + test + typecheck) ──
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-secret-at-least-32-characters-long-for-testing!!
+      STORE_DRIVER: memory
+      NEXT_PUBLIC_MP_PUBLIC_KEY: TEST-1234-5678-9012-3456
+      MP_ACCESS_TOKEN: TEST-4321-8765-2109-6543
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Lint
+        run: npm run lint
+
+      - name: 🌀 TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: 🧪 Tests
+        run: npm test
+
+  # ── Paso 2: Deploy a Vercel ──
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # Las variables de entorno reales (JWT_SECRET, MP keys, etc.)
+      # se configuran en el dashboard de Vercel > Project Settings > Environment Variables.
+      # Las variables definidas arriba (env:) son solo para CI y no afectan al deploy.
+      - name: 🚀 Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+          working-directory: ./
+          vercel-version: 39
+
+      # ── Comentar URL de preview en el PR ──
+      - name: 💬 Comentar preview en PR
+        if: github.event_name == 'pull_request' && steps.deploy.outputs.preview-url
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.deploy.outputs.preview-url }}';
+            const env = '${{ github.ref == 'refs/heads/main' && 'Producción' || 'Preview' }}';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **${env} desplegada**\n\n🔗 [Ver ${env.toLowerCase()}](${previewUrl})\n\n_Deploy automático desde el workflow CI/CD._`
+            });

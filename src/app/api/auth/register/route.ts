@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db';
+import { getUserRepo } from '@/lib/repositories';
 import { registerSchema } from '@/lib/validation';
 
 export async function POST(request: Request) {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const { name, email, password } = parsed.data;
 
-    if (db.users.get().find((u) => u.email === email)) {
+    if (getUserRepo().findByEmail(email)) {
       return NextResponse.json(
         { error: 'El email ya está registrado' },
         { status: 409 }
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
     const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
-    db.users.get().push({ id, name, email, password: hashedPassword });
+    getUserRepo().create({ id, name, email, password: hashedPassword, isAdmin: false });
 
     return NextResponse.json(
       { user: { id, name, email } },

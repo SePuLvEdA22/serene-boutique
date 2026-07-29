@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
 import { type Product } from '@/types';
 
 export default function AdminProductosPage() {

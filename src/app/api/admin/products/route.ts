@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getProductRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
-import { type Product } from '@/types';
+import { ProductSchema } from '@/lib/models';
 
 export async function GET() {
   const user = await requireAdmin();
@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  return NextResponse.json({ products: db.products.get() });
+  return NextResponse.json({ products: getProductRepo().findAll() });
 }
 
 export async function POST(request: Request) {
@@ -39,26 +39,29 @@ export async function POST(request: Request) {
       .replace(/--+/g, '-')
       .replace(/^-|-$/g, '');
 
-    if (db.products.get().some(p => p.id === id)) {
+    if (getProductRepo().findById(id)) {
       return NextResponse.json({ error: 'Ya existe un producto con ese ID' }, { status: 409 });
     }
 
-    const product: Product = {
+    const parsed = ProductSchema.safeParse({
       id,
       name: body.name,
       description: body.description || '',
       price: Number(body.price),
-      images: ['/images/placeholder.svg'],
       category: body.category,
       featured: Boolean(body.featured),
       colors: body.colors || [],
       stock: body.stock !== undefined ? Number(body.stock) : undefined,
       createdAt: new Date().toISOString().split('T')[0],
-    };
+    });
 
-    db.products.set([...db.products.get(), product]);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Datos de producto inválidos' }, { status: 400 });
+    }
 
-    return NextResponse.json({ product }, { status: 201 });
+    getProductRepo().create(parsed.data);
+
+    return NextResponse.json({ product: parsed.data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Error al crear producto' }, { status: 500 });
   }

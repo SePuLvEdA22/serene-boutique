@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
 import { type Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';

@@ -4,7 +4,10 @@ export const emailSchema = z.string().email('Email inválido');
 
 export const passwordSchema = z
   .string()
-  .min(6, 'La contraseña debe tener al menos 6 caracteres');
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
+  .regex(/[0-9]/, 'Debe contener al menos un número')
+  .regex(/[^A-Za-z0-9]/, 'Debe contener al menos un carácter especial');
 
 export const loginSchema = z.object({
   email: emailSchema,
@@ -24,10 +27,10 @@ export const registerSchema = z
   });
 
 export const contactSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
   email: emailSchema,
-  subject: z.string().min(3, 'El asunto debe tener al menos 3 caracteres'),
-  message: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres'),
+  subject: z.string().min(3, 'El asunto debe tener al menos 3 caracteres').max(200),
+  message: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres').max(5000),
 });
 
 export const shippingSchema = z.object({

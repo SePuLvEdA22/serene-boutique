@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db';
+import { getUserRepo } from '@/lib/repositories';
 import { loginSchema } from '@/lib/validation';
 import { signUserToken } from '@/lib/auth';
 import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const { email, password } = parsed.data;
-    const user = db.users.get().find((u) => u.email === email);
+    const user = getUserRepo().findByEmail(email);
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return NextResponse.json(
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });

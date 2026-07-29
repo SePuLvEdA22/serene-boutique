@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getUserRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
 
 export async function GET() {
@@ -8,9 +8,10 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const users = db.users.get()
+  const users = getUserRepo()
+    .findAll()
     .filter(u => !u.isAdmin)
-    .map(({ password, ...rest }) => rest);
+    .map(({ password: _, ...rest }) => rest);
 
   return NextResponse.json({ users });
 }

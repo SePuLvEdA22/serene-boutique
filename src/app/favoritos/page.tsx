@@ -1,13 +1,27 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { products, formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
+import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
+import Spinner from '@/components/Spinner';
 
 export default function FavoritosPage() {
   const { wishlist, removeFromWishlist, user } = useAuth();
-  const favoriteProducts = products.filter((p) => wishlist.some((w) => w.productId === p.id));
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => setAllProducts(data.products))
+      .catch(() => setAllProducts([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const favoriteProducts = allProducts.filter((p) => wishlist.some((w) => w.productId === p.id));
 
   return (
     <div className="container-store py-12 animate-fade-in">
@@ -28,7 +42,13 @@ export default function FavoritosPage() {
         </div>
       )}
 
-      {user && favoriteProducts.length === 0 && (
+      {user && loading && (
+        <div className="flex items-center justify-center py-20">
+          <Spinner />
+        </div>
+      )}
+
+      {user && !loading && favoriteProducts.length === 0 && (
         <div className="rounded-2xl bg-surface-container py-16 text-center">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-outline" aria-hidden="true">
             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
@@ -43,7 +63,7 @@ export default function FavoritosPage() {
         </div>
       )}
 
-      {user && favoriteProducts.length > 0 && (
+      {user && !loading && favoriteProducts.length > 0 && (
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-10 animate-stagger">
           {favoriteProducts.map((product) => (
             <div key={product.id} className="w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] min-w-[180px] relative group">

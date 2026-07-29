@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, Helger]
+  pull_request:
+    branches: [main, Helger]
+
+# Cancelar ejecuciones previas del mismo PR/rama para ahorrar recursos
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Variables de entorno comunes a todos los jobs
+env:
+  JWT_SECRET: ci-secret-at-least-32-characters-long-for-testing!!
+  STORE_DRIVER: memory
+  NEXT_PUBLIC_MP_PUBLIC_KEY: TEST-1234-5678-9012-3456
+  MP_ACCESS_TOKEN: TEST-4321-8765-2109-6543
+
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20, 22]
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # ── Feedback rápido: lint + typecheck primero ──
+      - name: 🔍 Lint
+        run: npm run lint
+
+      - name: 🌀 TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: 🧪 Run tests
+        run: npm test
+
+      # ── Build: verifica que el proyecto compila correctamente ──
+      - name: ♻️ Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('next.config.ts', 'tsconfig.json', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-next-
+
+      - name: 🏗️ Build Next.js
+        run: npm run build
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    # Solo en push a ramas principales, y solo si quality pasó
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Helger')
+    needs: quality
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # advisory: npm audit a veces reporta falsos positivos;
+      # continuamos para no bloquear el pipeline, pero revisar los reportes
+      - name: 🛡️ npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true

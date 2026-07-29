@@ -1,24 +1,14 @@
-import { type Product, type Category } from '@/types';
-import { initialProducts } from './product-data';
+import { type Product, type Category } from '@/lib/models';
+import { getProductRepo } from './repositories';
 
 export function getProductById(id: string): Product | undefined {
-  return initialProducts.find(p => p.id === id);
+  return getProductRepo().findById(id);
 }
 
 export function getProductsByCategory(category: Category): Product[] {
-  return initialProducts.filter(p => p.category === category);
+  return getProductRepo().findByCategory(category);
 }
 
 export function getFeaturedProducts(): Product[] {
-  return initialProducts.filter(p => p.featured);
+  return getProductRepo().getFeatured();
 }
-
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 2,
-  }).format(price);
-}
-
-export const products = [...initialProducts];

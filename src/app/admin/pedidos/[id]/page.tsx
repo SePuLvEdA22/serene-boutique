@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { formatPrice } from '@/lib/products';
+import { formatPrice } from '@/lib/format-price';
 
 interface OrderDetail {
   id: string;

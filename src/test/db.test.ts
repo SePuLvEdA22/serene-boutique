@@ -40,7 +40,7 @@ describe('db users', () => {
 
   it('persists across re-imports via singleton', async () => {
     const { db } = await import('@/lib/db');
-    db.users.get().push({ id: '1', name: 'Test', email: 'test@test.com', password: 'hash' });
+    db.users.get().push({ id: '1', name: 'Test', email: 'test@test.com', password: 'hash', isAdmin: false });
     const { db: db2 } = await import('@/lib/db');
     expect(db2.users.get()).toHaveLength(1);
     expect(db2.users.get()[0].email).toBe('test@test.com');
