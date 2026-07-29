@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
-import { registerSchema } from '@/lib/validation';
+import { registerServerSchema } from '@/lib/validation';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const parsed = registerSchema.safeParse(body);
+    const parsed = registerServerSchema.safeParse(body);
 
     if (!parsed.success) {
       const firstError = parsed.error.issues[0];
@@ -15,7 +15,6 @@ export async function POST(request: Request) {
         name: 'El nombre debe tener al menos 2 caracteres',
         email: 'Email inválido',
         password: 'La contraseña debe tener al menos 8 caracteres',
-        confirm: 'Las contraseñas no coinciden',
       };
       return NextResponse.json(
         { error: messages[field] || firstError?.message || 'Datos inválidos' },

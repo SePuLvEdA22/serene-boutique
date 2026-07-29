@@ -26,6 +26,13 @@ export const registerSchema = z
     path: ['confirm'],
   });
 
+/** Schema for server-side — sin `confirm` porque solo se valida en cliente */
+export const registerServerSchema = z.object({
+  name: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  email: emailSchema,
+  password: passwordSchema,
+});
+
 export const contactSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
   email: emailSchema,
