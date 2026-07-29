@@ -79,7 +79,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ addToast }}>
       {children}
       <div
-        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"
+        className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 w-full max-w-sm px-4 pointer-events-none"
         aria-live="polite"
         aria-label="Notificaciones"
         role="log"
@@ -88,44 +88,44 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             role="alert"
-            className={`flex items-start gap-3 rounded-xl px-4 py-3 font-body text-sm shadow-medium animate-fade-in ${
+            className={`flex items-start gap-3 rounded-xl px-5 py-3.5 font-body text-sm shadow-medium w-full pointer-events-auto animate-toast-slide ${
               toast.type === 'success'
-                ? 'bg-primary-container text-on-primary-container'
+                ? 'bg-primary text-on-primary shadow-lg shadow-primary/20'
                 : toast.type === 'error'
-                ? 'bg-error-container text-on-error-container'
-                : 'bg-surface-container-high text-on-surface'
+                ? 'bg-error text-on-error shadow-lg shadow-error/20'
+                : 'bg-surface-container-high text-on-surface shadow-soft'
             }`}
             onMouseEnter={() => handleMouseEnter(toast.id)}
             onMouseLeave={() => handleMouseLeave(toast.id)}
           >
             <span className="mt-0.5 flex-shrink-0">
               {toast.type === 'success' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               )}
               {toast.type === 'error' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="15" y1="9" x2="9" y2="15" />
                   <line x1="9" y1="9" x2="15" y2="15" />
                 </svg>
               )}
               {toast.type === 'info' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
                   <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
               )}
             </span>
-            <span className="flex-1">{toast.message}</span>
+            <span className="flex-1 leading-snug">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 mt-0.5 opacity-60 transition-opacity hover:opacity-100"
+              className="flex-shrink-0 mt-0.5 opacity-70 transition-all hover:opacity-100 hover:scale-110 active:scale-90"
               aria-label="Cerrar notificación"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

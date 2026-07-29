@@ -11,7 +11,12 @@ export const MP_PUBLIC_KEY =
 export const MP_ACCESS_TOKEN =
   process.env.MP_ACCESS_TOKEN ?? 'TEST-4321-8765-2109-6543';
 
-export const isTestMode = !process.env.MP_ACCESS_TOKEN;
+/**
+ * Indica si estamos en modo de prueba (sandbox) de MercadoPago.
+ * Usa NEXT_PUBLIC_MP_PUBLIC_KEY (disponible tanto en server como cliente)
+ * para determinar si las credenciales son de prueba (TEST-) o producción (APP_USR-).
+ */
+export const isTestMode = !(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY?.startsWith('APP_USR-') ?? false);
 
 // ─── Tipos de identificación para Colombia ────────────────────────────
 
