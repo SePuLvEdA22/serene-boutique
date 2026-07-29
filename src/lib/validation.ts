@@ -68,6 +68,25 @@ export const personalizadoSchema = z.object({
     .min(10, 'Describe tu diseño con al menos 10 caracteres'),
 });
 
+export const updateProfileSchema = z.object({
+  name: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().trim().min(1, 'La contraseña actual es obligatoria'),
+    newPassword: passwordSchema,
+    confirmNewPassword: z.string().trim().min(1, 'Confirma la nueva contraseña'),
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: 'La nueva contraseña debe ser diferente a la actual',
+    path: ['newPassword'],
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmNewPassword'],
+  });
+
 export const newsletterSchema = z.object({
   email: emailSchema,
 });

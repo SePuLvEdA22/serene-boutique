@@ -61,6 +61,18 @@ export default function UserDropdown() {
           </div>
 
           <Link
+            href="/favoritos"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+            </svg>
+            Mis favoritos
+          </Link>
+
+          <Link
             href="/mis-ordenes"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
             role="menuitem"
@@ -70,6 +82,19 @@ export default function UserDropdown() {
               <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
             Mis órdenes
+          </Link>
+
+          <Link
+            href="/perfil"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Mi Perfil
           </Link>
 
           <hr className="my-1 border-outline-variant/50" />
