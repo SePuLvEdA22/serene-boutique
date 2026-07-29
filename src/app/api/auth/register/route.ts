@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       const messages: Record<string, string> = {
         name: 'El nombre debe tener al menos 2 caracteres',
         email: 'Email inválido',
-        password: 'La contraseña debe tener al menos 6 caracteres',
+        password: 'La contraseña debe tener al menos 8 caracteres',
         confirm: 'Las contraseñas no coinciden',
       };
       return NextResponse.json(

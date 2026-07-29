@@ -1,24 +1,25 @@
 import { z } from 'zod';
 
-export const emailSchema = z.string().email('Email inválido');
+export const emailSchema = z.string().trim().email('Email inválido');
 
 export const passwordSchema = z
   .string()
+  .trim()
   .min(8, 'La contraseña debe tener al menos 8 caracteres')
   .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
   .regex(/[0-9]/, 'Debe contener al menos un número');
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'La contraseña es obligatoria'),
+  password: z.string().trim().min(1, 'La contraseña es obligatoria'),
 });
 
 export const registerSchema = z
   .object({
-    name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+    name: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres'),
     email: emailSchema,
     password: passwordSchema,
-    confirm: z.string().min(1, 'Confirma tu contraseña'),
+    confirm: z.string().trim().min(1, 'Confirma tu contraseña'),
   })
   .refine((data) => data.password === data.confirm, {
     message: 'Las contraseñas no coinciden',
@@ -51,7 +52,7 @@ export const shippingSchema = z.object({
 
 export const adminLoginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'La contraseña es obligatoria'),
+  password: z.string().trim().min(1, 'La contraseña es obligatoria'),
 });
 
 export const personalizadoSchema = z.object({
