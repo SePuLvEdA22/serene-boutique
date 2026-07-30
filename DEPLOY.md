@@ -16,7 +16,7 @@ Guía paso a paso para desplegar **Switch&Tech** en **Vercel** con integración 
 
 1. Ir a [vercel.com](https://vercel.com) e iniciar sesión (con GitHub)
 2. Click en **"Add New..." > "Project"**
-3. Conectar el repositorio de GitHub (`serene-boutique`)
+3. Conectar el repositorio de GitHub (`switchandtech`)
 4. Vercel detectará automáticamente Next.js — **no cambiar configuración**
 5. En **"Environment Variables"**, agregar las siguientes:
 
@@ -30,7 +30,7 @@ Guía paso a paso para desplegar **Switch&Tech** en **Vercel** con integración 
 | `STORE_DRIVER` | `lowdb` | Usar almacenamiento persistente en archivo |
 
 6. Click en **"Deploy"**
-7. Esperar a que termine el primer deploy — Vercel mostrará una URL tipo `serene-boutique.vercel.app`
+7. Esperar a que termine el primer deploy — Vercel mostrará una URL tipo `switchandtech.vercel.app`
 
 > ✅ **¡Tu tienda ya está en línea!** Ahora configuraremos CI/CD automático.
 
