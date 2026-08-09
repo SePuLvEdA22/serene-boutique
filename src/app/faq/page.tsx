@@ -11,12 +11,12 @@ export default function FAQPage() {
     <div className="container-store py-12 animate-fade-in">
       <h1 className="font-heading text-4xl font-medium text-on-surface md:text-5xl">Preguntas frecuentes</h1>
       <div className="mt-10 flex max-w-3xl flex-col gap-8 font-body text-base leading-relaxed text-on-surface-variant">
-        <FaqItem question="¿Hacen envíos a toda la República?">
-          Sí, realizamos envíos a toda la República Mexicana con cobertura completa. Los tiempos varían según la zona.
+        <FaqItem question="¿Hacen envíos a toda Colombia?">
+          Sí, realizamos envíos a todo el territorio colombiano con cobertura completa. Los tiempos varían según la zona.
         </FaqItem>
 
         <FaqItem question="¿Cuánto tarda mi pedido?">
-          El tiempo de entrega depende de tu ubicación. Generalmente es de 1 a 3 días en CDMX y hasta 7 días en zonas remotas. Consulta nuestra página de <a href="/envios" className="text-primary underline transition-colors hover:text-primary/80">Envíos</a> para más detalles.
+          El tiempo de entrega depende de tu ubicación. Generalmente es de 1 a 3 días en Bogotá y hasta 7 días en zonas remotas. Consulta nuestra página de <a href="/envios" className="text-primary underline transition-colors hover:text-primary/80">Envíos</a> para más detalles.
         </FaqItem>
 
         <FaqItem question="¿Puedo devolver un producto personalizado?">

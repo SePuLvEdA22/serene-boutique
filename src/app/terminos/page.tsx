@@ -81,7 +81,7 @@ export default function TerminosPage() {
             5. Envíos
           </h2>
           <p>
-            Realizamos envíos a toda la República Mexicana. Los tiempos y costos de envío se
+            Realizamos envíos a todo el territorio colombiano. Los tiempos y costos de envío se
             detallan en nuestra{' '}
             <Link href="/envios" className="text-primary underline transition-colors hover:text-primary/80">
               página de envíos
@@ -136,9 +136,9 @@ export default function TerminosPage() {
             9. Ley aplicable
           </h2>
           <p>
-            Estos Términos y Condiciones se rigen por las leyes de los{' '}
-            <strong className="text-on-surface">Estados Unidos Mexicanos</strong>. Cualquier
-            controversia será sometida a los tribunales competentes de la Ciudad de México.
+            Estos Términos y Condiciones se rigen por las leyes de la{' '}
+            <strong className="text-on-surface">República de Colombia</strong>. Cualquier
+            controversia será sometida a los tribunales competentes de Bogotá.
           </p>
         </section>
 
@@ -154,7 +154,7 @@ export default function TerminosPage() {
               <strong>Switch&Tech</strong>
             </p>
             <p>Email: legal@switchandtech.mx</p>
-            <p>Teléfono: +52 55 1234 5678</p>
+            <p>Teléfono: +57 300 123 4567</p>
           </div>
         </section>
 

@@ -167,8 +167,8 @@ export default function PrivacidadPage() {
               <strong>Switch&Tech</strong>
             </p>
             <p>Email: privacidad@switchandtech.mx</p>
-            <p>Teléfono: +52 55 1234 5678</p>
-            <p>Ciudad de México, MX</p>
+            <p>Teléfono: +57 300 123 4567</p>
+            <p>Bogotá, Colombia</p>
           </div>
         </section>
 

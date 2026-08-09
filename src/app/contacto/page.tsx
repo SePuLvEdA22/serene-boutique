@@ -156,9 +156,9 @@ export default function ContactoPage() {
             <div className="mt-4 flex flex-col gap-4">
               {[
                 { label: 'Email', value: 'hola@switchandtech.com' },
-                { label: 'Teléfono', value: '+52 55 1234 5678' },
-                { label: 'Horario', value: 'Lun - Vie: 10:00 - 19:00' },
-                { label: 'Ubicación', value: 'Ciudad de México, MX' },
+                { label: 'Teléfono', value: '+57 300 123 4567' },
+                { label: 'Horario', value: 'Lun - Vie: 9:00 - 18:00' },
+                { label: 'Ubicación', value: 'Bogotá, Colombia' },
               ].map((info) => (
                 <div key={info.label}>
                   <p className="font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">

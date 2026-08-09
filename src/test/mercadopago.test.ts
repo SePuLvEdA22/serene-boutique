@@ -4,7 +4,7 @@ import { buildPreference as buildMpPreference, COL_IDENTIFICATION_TYPES } from '
 
 describe('formatPrice', () => {
   it('debería_formatear_en_COP_por_defecto', () => {
-    expect(formatPrice(249)).toBe('$249');
+    expect(formatPrice(249)).toBe('249 COP');
   });
 });
 

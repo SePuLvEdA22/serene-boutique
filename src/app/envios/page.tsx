@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Envíos | Switch&Tech',
-  description: 'Conoce nuestras políticas y tiempos de envío. Envíos a toda la República Mexicana.',
+  description:
+    'Conoce nuestras políticas y tiempos de envío. Envíos a todo el territorio colombiano.',
   alternates: { canonical: '/envios' },
 };
 
@@ -13,17 +14,17 @@ export default function EnviosPage() {
       <div className="mt-10 flex flex-col gap-8 font-body text-base leading-relaxed text-on-surface-variant max-w-3xl">
         <section>
           <h2 className="mb-3 font-heading text-2xl font-medium text-on-surface">Tiempos de entrega</h2>
-          <p>Realizamos envíos a toda la República Mexicana. Los tiempos de entrega estimados son:</p>
+          <p>Realizamos envíos a todo el territorio colombiano. Los tiempos de entrega estimados son:</p>
           <ul className="mt-3 flex flex-col gap-2 pl-5 list-disc">
-            <li>Ciudad de México y Área Metropolitana: 1–3 días hábiles</li>
-            <li>Zona Centro (Estado de México, Morelos, Hidalgo, Puebla, Querétaro): 2–4 días hábiles</li>
-            <li>Zona Norte y Sur: 3–7 días hábiles</li>
+            <li>Bogotá y alrededores: 1–3 días hábiles</li>
+            <li>Principales ciudades (Medellín, Cali, Barranquilla, Bucaramanga): 2–4 días hábiles</li>
+            <li>Resto del país: 3–7 días hábiles</li>
           </ul>
         </section>
 
         <section>
           <h2 className="mb-3 font-heading text-2xl font-medium text-on-surface">Costo de envío</h2>
-          <p>El envío es <strong className="text-on-surface">gratuito</strong> en pedidos mayores a MX$599. Para pedidos menores, el costo de envío es de MX$99.</p>
+          <p>El envío es <strong className="text-on-surface">gratuito</strong> en pedidos mayores a 450.000 COP. Para pedidos menores, el costo de envío es de 25.000 COP.</p>
         </section>
 
         <section>
