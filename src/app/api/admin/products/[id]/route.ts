@@ -55,13 +55,34 @@ export async function PUT(
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
 
+    const images =
+      Array.isArray(body.images) && body.images.length > 0
+        ? body.images.filter((u: unknown) => typeof u === 'string')
+        : existing.images;
+    const image =
+      typeof body.image === 'string' && body.image
+        ? body.image
+        : images.length > 0 && (images[0] !== existing.image || !existing.image)
+        ? images[0]
+        : existing.image;
+
     const updated = getProductRepo().update(id, {
       name: body.name ?? existing.name,
       description: body.description ?? existing.description,
       price: body.price !== undefined ? Number(body.price) : existing.price,
+      salePrice:
+        body.salePrice === null || body.salePrice === ''
+          ? undefined // Limpiar la oferta
+          : body.salePrice !== undefined
+          ? Number(body.salePrice)
+          : existing.salePrice,
+      images,
+      image,
       category: body.category ?? existing.category,
       featured: body.featured !== undefined ? Boolean(body.featured) : existing.featured,
+      active: body.active !== undefined ? Boolean(body.active) : existing.active ?? true,
       colors: body.colors ?? existing.colors,
+      tags: Array.isArray(body.tags) ? body.tags.filter((t: unknown) => typeof t === 'string') : existing.tags,
       stock: body.stock !== undefined ? Number(body.stock) : existing.stock,
     });
 

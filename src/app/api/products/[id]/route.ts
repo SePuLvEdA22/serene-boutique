@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params;
   const product = getProductRepo().findById(id);
 
-  if (!product) {
+  if (!product || product.active === false) {
     return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
   }
 

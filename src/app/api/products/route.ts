@@ -8,14 +8,21 @@ export async function GET(request: Request) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)));
 
-  let result = getProductRepo().findAll();
+  let result = getProductRepo().findAll().filter(p => p.active !== false);
 
   if (category && (category === 'fundas' || category === 'cargadores' || category === 'termos' || category === 'personalizados')) {
-    result = getProductRepo().findByCategory(category);
+    result = result.filter(p => p.category === category);
   }
 
   if (search) {
-    result = getProductRepo().search(search);
+    const q = search.toLowerCase();
+    result = result.filter(
+      p =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.tags ?? []).some(t => t.toLowerCase().includes(q))
+    );
   }
 
   const total = result.length;

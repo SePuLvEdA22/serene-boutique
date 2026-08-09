@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { formatPrice } from '@/lib/format-price';
+import PriceTag from '@/components/PriceTag';
 import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
 import Spinner from '@/components/Spinner';
@@ -72,7 +72,7 @@ export default function FavoritosPage() {
                 <h3 className="font-heading text-base font-medium text-on-surface transition-colors group-hover:text-primary">
                   {product.name}
                 </h3>
-                <p className="mt-1 font-body text-sm text-primary">{formatPrice(product.price)}</p>
+                <PriceTag product={product} />
               </Link>
               <button
                 onClick={() => removeFromWishlist(product.id)}

@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { type Product } from '@/types';
+import { useToast } from '@/context/ToastContext';
 
 export default function InventarioPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,8 +42,9 @@ export default function InventarioPage() {
       if (!res.ok) throw new Error();
       setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: editStock } : p));
       setEditingId(null);
+      addToast('Stock actualizado', 'success');
     } catch {
-      alert('Error al actualizar stock');
+      addToast('Error al actualizar stock', 'error');
     } finally {
       setUpdating(false);
     }

@@ -4,6 +4,7 @@ import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/lib/format-price';
 import Link from 'next/link';
 import ProductImage from '@/components/ProductImage';
+import PriceTag from '@/components/PriceTag';
 
 export default function CarritoPage() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
@@ -59,9 +60,7 @@ export default function CarritoPage() {
                           Color: {item.selectedColor}
                         </p>
                       )}
-                      <p className="mt-1 font-body text-sm text-primary">
-                        {formatPrice(item.product.price)}
-                      </p>
+                      <PriceTag product={item.product} className="mt-1 font-body text-sm" />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import type { Product } from '@/lib/models';
+import { getPrice } from '@/lib/format-price';
 
 interface ProductJsonLdProps {
   product: Product;
@@ -33,7 +34,7 @@ export default function ProductJsonLd({ product }: ProductJsonLdProps) {
       '@type': 'Offer',
       url: `https://switchandtech.com/producto/${product.id}`,
       priceCurrency: 'COP',
-      price: product.price,
+      price: getPrice(product),
       availability,
       itemCondition: 'https://schema.org/NewCondition',
       seller: {

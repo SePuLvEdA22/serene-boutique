@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/context/ToastContext';
-import { formatPrice } from '@/lib/format-price';
+import { formatPrice, getPrice } from '@/lib/format-price';
 import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
+import PriceTag from '@/components/PriceTag';
 import Spinner from '@/components/Spinner';
 import { personalizadoSchema, formatZodErrors } from '@/lib/validation';
 
@@ -202,7 +203,7 @@ export default function PersonalizadosPage() {
             <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2"><Spinner /> Agregando...</span>
-              ) : `Agregar al carrito — ${selectedProduct ? formatPrice(selectedProduct.price) : ''}`}
+              ) : `Agregar al carrito — ${selectedProduct ? formatPrice(getPrice(selectedProduct)) : ''}`}
             </button>
           </form>
         </div>
@@ -217,9 +218,11 @@ export default function PersonalizadosPage() {
               <p className="mt-2 font-body text-base leading-relaxed text-on-surface-variant">
                 {selectedProduct.description}
               </p>
-              <p className="mt-4 font-heading text-2xl font-medium text-primary">
-                {formatPrice(selectedProduct.price)}
-              </p>
+              <PriceTag
+                product={selectedProduct}
+                className="mt-4 font-heading text-2xl font-medium"
+                priceClassName="text-primary"
+              />
             </>
           )}
         </div>

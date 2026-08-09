@@ -59,14 +59,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Ya existe un producto con ese ID' }, { status: 409 });
     }
 
+    const images = Array.isArray(body.images) ? body.images.filter((u: unknown) => typeof u === 'string') : [];
+
     const parsed = ProductSchema.safeParse({
       id,
       name: body.name,
       description: body.description || '',
       price: Number(body.price),
+      salePrice:
+        body.salePrice !== undefined && body.salePrice !== null && body.salePrice !== ''
+          ? Number(body.salePrice)
+          : undefined,
+      images: images.length > 0 ? images : undefined,
+      image: typeof body.image === 'string' && body.image ? body.image : images[0],
       category: body.category,
       featured: Boolean(body.featured),
+      active: body.active !== undefined ? Boolean(body.active) : true,
       colors: body.colors || [],
+      tags: Array.isArray(body.tags) ? body.tags.filter((t: unknown) => typeof t === 'string') : [],
       stock: body.stock !== undefined ? Number(body.stock) : undefined,
       createdAt: new Date().toISOString().split('T')[0],
     });

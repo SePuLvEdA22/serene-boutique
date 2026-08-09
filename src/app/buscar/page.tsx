@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type Product } from '@/types';
-import { formatPrice } from '@/lib/format-price';
+import PriceTag from '@/components/PriceTag';
 import ProductImage from '@/components/ProductImage';
 
 interface Pagination {
@@ -164,7 +164,7 @@ export default function BuscarPage() {
                   <h3 className="font-heading text-base font-medium text-on-surface transition-colors group-hover:text-primary">
                     {product.name}
                   </h3>
-                  <p className="mt-1 font-body text-sm text-primary">{formatPrice(product.price)}</p>
+                  <PriceTag product={product} />
                 </Link>
               </div>
             ))}

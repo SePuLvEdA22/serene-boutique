@@ -5,9 +5,9 @@ import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
-import { formatPrice } from '@/lib/format-price';
 import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
+import PriceTag from '@/components/PriceTag';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Spinner from '@/components/Spinner';
 import ProductJsonLd from '@/components/ProductJsonLd';
@@ -89,9 +89,11 @@ export default function ProductDetailPage() {
             <h1 className="font-heading text-4xl font-medium text-on-surface md:text-5xl">
               {product.name}
             </h1>
-            <p className="mt-6 font-heading text-3xl font-medium text-primary">
-              {formatPrice(product.price)}
-            </p>
+            <PriceTag
+              product={product}
+              className="mt-6 font-heading text-3xl font-medium"
+              priceClassName="text-primary"
+            />
             <p className="mt-6 font-body text-base leading-relaxed text-on-surface-variant">
               {product.description}
             </p>
@@ -176,7 +178,7 @@ export default function ProductDetailPage() {
                   <h3 className="font-body text-sm font-medium text-on-surface transition-colors group-hover:text-primary">
                     {rel.name}
                   </h3>
-                  <p className="mt-1 font-body text-sm text-primary">{formatPrice(rel.price)}</p>
+                  <PriceTag product={rel} className="mt-1 font-body text-sm" />
                 </Link>
               ))}
             </div>

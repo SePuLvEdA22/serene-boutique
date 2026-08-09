@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatPrice } from '@/lib/format-price';
 import { type Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 import ProductImage from './ProductImage';
+import PriceTag from './PriceTag';
 
 interface ProductCardProps {
   product: Product;
@@ -66,7 +66,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
       </Link>
-      <p className="mt-1 font-body text-sm text-primary">{formatPrice(product.price)}</p>
+      <PriceTag product={product} />
     </div>
   );
 }

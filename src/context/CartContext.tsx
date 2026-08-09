@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { type CartItem, type Product } from '@/types';
+import { getPrice } from '@/lib/format-price';
 
 interface CartState {
   items: CartItem[];
@@ -136,7 +137,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const totalItems = useMemo(() => state.items.reduce((acc, item) => acc + item.quantity, 0), [state.items]);
-  const totalPrice = useMemo(() => state.items.reduce((acc, item) => acc + item.product.price * item.quantity, 0), [state.items]);
+  const totalPrice = useMemo(
+    () => state.items.reduce((acc, item) => acc + getPrice(item.product) * item.quantity, 0),
+    [state.items]
+  );
 
   return (
     <CartContext.Provider

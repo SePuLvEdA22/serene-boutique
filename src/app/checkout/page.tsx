@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/lib/format-price';
+import { formatPrice, getPrice } from '@/lib/format-price';
 import Spinner from '@/components/Spinner';
 import { shippingSchema, formatZodErrors } from '@/lib/validation';
 import {
@@ -106,7 +106,7 @@ export default function CheckoutPage() {
           id: i.product.id,
           title: i.product.name,
           quantity: i.quantity,
-          unit_price: i.product.price,
+          unit_price: getPrice(i.product),
         })),
         paymentMethod,
         shipping: {
@@ -561,7 +561,7 @@ export default function CheckoutPage() {
                     {item.selectedColor ? ` (${item.selectedColor})` : ''}
                   </span>
                   <span className="text-on-surface">
-                    {formatPrice(item.product.price * item.quantity)}
+                    {formatPrice(getPrice(item.product) * item.quantity)}
                   </span>
                 </div>
               ))}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/lib/format-price';
 import ProductImage from './ProductImage';
+import PriceTag from './PriceTag';
 
 export default function CartDrawer() {
   const { items, isOpen, toggleCart, removeItem, updateQuantity, totalPrice } = useCart();
@@ -92,9 +93,7 @@ export default function CartDrawer() {
                               Color: {item.selectedColor}
                             </p>
                           )}
-                          <p className="mt-1 font-body text-sm text-primary">
-                            {formatPrice(item.product.price)}
-                          </p>
+                          <PriceTag product={item.product} className="mt-1 font-body text-sm" />
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPrice } from '@/lib/format-price';
+import { formatPrice, getPrice } from '@/lib/format-price';
 
 describe('formatPrice', () => {
   it('formats integer prices correctly', () => {
@@ -22,5 +22,21 @@ describe('formatPrice', () => {
 
   it('always shows integer pesos without decimals', () => {
     expect(formatPrice(100)).toBe('100 COP');
+  });
+});
+
+describe('getPrice', () => {
+  it('debería_devolver_el_precio_base_sin_precio_de_oferta', () => {
+    expect(getPrice({ price: 249000 })).toBe(249000);
+    expect(getPrice({ price: 249000, salePrice: undefined })).toBe(249000);
+  });
+
+  it('debería_usar_el_precio_de_oferta_cuando_es_menor', () => {
+    expect(getPrice({ price: 249000, salePrice: 199000 })).toBe(199000);
+  });
+
+  it('debería_ignorar_la_oferta_cuando_no_es_menor_que_el_precio', () => {
+    expect(getPrice({ price: 249000, salePrice: 249000 })).toBe(249000);
+    expect(getPrice({ price: 249000, salePrice: 299000 })).toBe(249000);
   });
 });

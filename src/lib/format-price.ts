@@ -11,6 +11,16 @@ export function formatPrice(price: number): string {
   return `${formatThousands(Math.round(price))} COP`;
 }
 
+/**
+ * Devuelve el precio efectivo de un producto: el de oferta (`salePrice`)
+ * cuando existe y es menor que el precio base; en caso contrario, el precio base.
+ */
+export function getPrice(product: { price: number; salePrice?: number }): number {
+  return product.salePrice !== undefined && product.salePrice < product.price
+    ? product.salePrice
+    : product.price;
+}
+
 /** 450000 → "450.000"; 1299 → "1.299"; 0 → "0" */
 function formatThousands(value: number): string {
   const sign = value < 0 ? '-' : '';
