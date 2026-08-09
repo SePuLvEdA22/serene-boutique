@@ -35,7 +35,7 @@ export default function TerminosPage() {
             2. Productos y precios
           </h2>
           <ul className="flex flex-col gap-2 pl-5 list-disc">
-            <li>Todos los precios están expresados en pesos mexicanos (MXN) e incluyen el IVA correspondiente.</li>
+            <li>Todos los precios están expresados en pesos colombianos (COP) e incluyen el IVA correspondiente.</li>
             <li>Nos reservamos el derecho de modificar precios sin previo aviso.</li>
             <li>Las imágenes de los productos son referenciales. El producto real puede variar ligeramente.</li>
             <li>La disponibilidad de los productos está sujeta a inventario. En caso de agotamiento, te notificaremos y reembolsaremos el monto correspondiente.</li>

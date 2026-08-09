@@ -3,15 +3,10 @@ import { formatPrice } from '@/lib/format-price';
 import { buildPreference as buildMpPreference, COL_IDENTIFICATION_TYPES } from '@/lib/mercadopago';
 
 describe('formatPrice', () => {
-  it('debería_formatear_en_MXN_por_defecto', () => {
+  it('debería_formatear_en_COP_por_defecto', () => {
     const result = formatPrice(249);
     expect(result).toContain('$');
     expect(result).toContain('249');
-  });
-
-  it('debería_formatear_en_COP_cuando_se_especifica', () => {
-    const result = formatPrice(50000, 'COP');
-    expect(result).toContain('$');
   });
 });
 
@@ -42,9 +37,9 @@ describe('buildPreference (MercadoPago)', () => {
     expect(result.items[0].quantity).toBe(2);
   });
 
-  it('debería_usar_MXN_para_tarjeta', () => {
+  it('debería_usar_COP_para_tarjeta', () => {
     const result = buildMpPreference(baseInput);
-    expect(result.items[0].currency_id).toBe('MXN');
+    expect(result.items[0].currency_id).toBe('COP');
   });
 
   it('debería_usar_COP_para_PSE', () => {

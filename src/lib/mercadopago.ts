@@ -1,6 +1,6 @@
 /**
  * Utilidades para integración con MercadoPago Checkout Pro.
- * Soporta pagos con tarjeta (MXN) y PSE (COP para Colombia).
+ * Todos los pagos en pesos colombianos (COP). Soporta tarjeta y PSE (Colombia).
  */
 
 // ─── Constantes de entorno ────────────────────────────────────────────
@@ -67,7 +67,7 @@ export interface MercadoPagoPreferenceItem {
   description?: string;
   quantity: number;
   unit_price: number;
-  currency_id: 'MXN' | 'COP';
+  currency_id: 'COP';
 }
 
 export interface MercadoPagoPreference {
@@ -122,7 +122,7 @@ export function buildPreference(input: PreferenceInput): MercadoPagoPreference {
       title: item.name,
       quantity: item.quantity,
       unit_price: item.price,
-      currency_id: isPse ? 'COP' : 'MXN',
+      currency_id: 'COP',
     })),
     back_urls: {
       success: `${baseUrl}/orden?status=success`,
@@ -190,7 +190,7 @@ export function getPseTestMessage(): string {
     `  • Usa un número de identificación válido simulado\n` +
     `  • Serás redirigido al entorno de prueba de PSE\n` +
     `  • No se realizarán cargos reales\n\n` +
-    `💡 PSE requiere COP (Peso Colombiano). Los precios se muestran en la moneda local.`
+    `💡 Los pagos se procesan en COP (Peso Colombiano).`
   );
 }
 

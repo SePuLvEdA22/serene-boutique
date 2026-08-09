@@ -36,7 +36,7 @@ describe('ProductJsonLd', () => {
     const script = container.querySelector('script[type="application/ld+json"]');
     const parsed = JSON.parse(script?.textContent || '{}');
     expect(parsed.offers?.price).toBe(299.00);
-    expect(parsed.offers?.priceCurrency).toBe('MXN');
+    expect(parsed.offers?.priceCurrency).toBe('COP');
   });
 
   it('debería_indicar_InStock_cuando_stock_mayor_a_cero', () => {

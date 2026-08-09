@@ -32,7 +32,7 @@ export default function ProductJsonLd({ product }: ProductJsonLdProps) {
     offers: {
       '@type': 'Offer',
       url: `https://switchandtech.com/producto/${product.id}`,
-      priceCurrency: 'MXN',
+      priceCurrency: 'COP',
       price: product.price,
       availability,
       itemCondition: 'https://schema.org/NewCondition',

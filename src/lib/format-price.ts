@@ -1,9 +1,8 @@
-export type Currency = 'MXN' | 'COP';
-
-export function formatPrice(price: number, currency: Currency = 'MXN'): string {
-  return new Intl.NumberFormat(currency === 'COP' ? 'es-CO' : 'es-MX', {
+/** Única moneda de la tienda: Peso Colombiano (COP). */
+export function formatPrice(price: number): string {
+  return new Intl.NumberFormat('es-CO', {
     style: 'currency',
-    currency,
+    currency: 'COP',
     minimumFractionDigits: 2,
   }).format(price);
 }

@@ -585,14 +585,15 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {paymentMethod === 'pse' && (
-              <div className="mt-4 rounded-lg bg-surface-container-low p-3">
-                <p className="font-body text-xs text-on-surface-variant">
-                  💳 Pago en <strong className="text-on-surface">COP (Peso Colombiano)</strong> a
-                  través de PSE. El monto se convertirá automáticamente según la tasa de cambio.
-                </p>
-              </div>
-            )}
+            <div className="mt-4 rounded-lg bg-surface-container-low p-3">
+              <p className="font-body text-xs text-on-surface-variant">
+                💳 Todos los pagos se procesan en{' '}
+                <strong className="text-on-surface">COP (Peso Colombiano)</strong>
+                {paymentMethod === 'pse'
+                  ? ' a través de PSE.'
+                  : ' con tarjeta de crédito o débito.'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
