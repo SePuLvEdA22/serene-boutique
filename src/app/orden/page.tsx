@@ -90,7 +90,7 @@ function OrderContent() {
         return;
       }
       try {
-        const res = await fetch(`/api/admin/orders/${orderId}`);
+        const res = await fetch(`/api/orders/${orderId}`);
         if (!cancelled && res.ok) {
           const data = await res.json();
           if (data?.order) setOrder(data.order);

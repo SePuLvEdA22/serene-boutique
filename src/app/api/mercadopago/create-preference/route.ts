@@ -73,8 +73,15 @@ export async function POST(request: Request) {
 
     const { items, paymentMethod, payer, shipping } = parsed.data;
 
+    // Crear orden en estado "pending" con información de pago
+    const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+    // La URL base para back_urls y notification_url: usar el origen real del
+    // request (dominio desplegado) y, si no viene, derivarlo de la URL del request.
+    const origin =
+      request.headers.get('origin') || new URL(request.url).origin || 'https://switchandtech.com';
+
     // Construir preferencia usando la librería
-    const origin = request.headers.get('origin') || 'https://switchandtech.com';
     const preference = buildPreference({
       items: items.map((item) => ({
         id: item.id,
@@ -83,6 +90,7 @@ export async function POST(request: Request) {
         quantity: item.quantity,
       })),
       paymentMethod: paymentMethod as PaymentMethodType,
+      orderId,
       payer: payer
         ? {
             name: payer.name,
@@ -92,9 +100,6 @@ export async function POST(request: Request) {
         : undefined,
       baseUrl: origin,
     });
-
-    // Crear orden en estado "pending" con información de pago
-    const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const order = {
       id: orderId,

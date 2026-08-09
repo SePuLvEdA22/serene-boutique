@@ -72,6 +72,9 @@ export interface MercadoPagoPreferenceItem {
 
 export interface MercadoPagoPreference {
   items: MercadoPagoPreferenceItem[];
+  /** Referencia externa (ID de la orden) que MercadoPago devuelve en el pago.
+   *  El webhook la usa para correlacionar el pago con la orden. */
+  external_reference?: string;
   payer?: {
     name?: string;
     email?: string;
@@ -98,6 +101,9 @@ export interface MercadoPagoPreference {
 export interface PreferenceInput {
   items: { id: string; name: string; price: number; quantity: number }[];
   paymentMethod: PaymentMethodType;
+  /** ID de la orden en tu sistema; viaja como external_reference para
+   *  que el webhook pueda actualizar la orden correcta. */
+  orderId: string;
   payer?: {
     name?: string;
     email?: string;
@@ -124,10 +130,11 @@ export function buildPreference(input: PreferenceInput): MercadoPagoPreference {
       unit_price: item.price,
       currency_id: 'COP',
     })),
+    external_reference: input.orderId,
     back_urls: {
-      success: `${baseUrl}/orden?status=success`,
+      success: `${baseUrl}/orden?status=success&id=${input.orderId}`,
       failure: `${baseUrl}/carrito?status=failure`,
-      pending: `${baseUrl}/orden?status=pending`,
+      pending: `${baseUrl}/orden?status=pending&id=${input.orderId}`,
     },
     auto_return: 'approved',
     notification_url: `${baseUrl}/api/mercadopago/webhook`,

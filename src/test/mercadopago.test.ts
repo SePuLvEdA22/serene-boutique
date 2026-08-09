@@ -24,6 +24,7 @@ describe('buildPreference (MercadoPago)', () => {
       { id: 'prod-1', name: 'Funda Test', price: 299, quantity: 2 },
     ],
     paymentMethod: 'card' as const,
+    orderId: 'ORD-123456-ABC123',
     baseUrl: 'https://switchandtech.com',
   };
 
@@ -53,6 +54,17 @@ describe('buildPreference (MercadoPago)', () => {
     expect(result.back_urls?.success).toContain('/orden');
     expect(result.back_urls?.failure).toContain('/carrito');
     expect(result.back_urls?.pending).toContain('/orden');
+  });
+
+  it('debería_incluir_external_reference_con_el_id_de_la_orden', () => {
+    const result = buildMpPreference(baseInput);
+    expect(result.external_reference).toBe('ORD-123456-ABC123');
+  });
+
+  it('debería_incluir_el_id_de_la_orden_en_los_back_urls_de_orden', () => {
+    const result = buildMpPreference(baseInput);
+    expect(result.back_urls?.success).toContain('id=ORD-123456-ABC123');
+    expect(result.back_urls?.pending).toContain('id=ORD-123456-ABC123');
   });
 
   it('debería_configurar_auto_return_approved', () => {

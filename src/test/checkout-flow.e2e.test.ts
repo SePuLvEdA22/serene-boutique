@@ -20,14 +20,19 @@ const WEBHOOK_SECRET = 'e2e-webhook-secret';
 // Tipos de los módulos de rutas (importados dinámicamente tras configurar env)
 type CreatePreferenceRoute = typeof import('@/app/api/mercadopago/create-preference/route');
 type WebhookRoute = typeof import('@/app/api/mercadopago/webhook/route');
+type PublicOrderRoute = typeof import('@/app/api/orders/[id]/route');
 let createPreferencePOST: CreatePreferenceRoute['POST'];
 let webhookPOST: WebhookRoute['POST'];
+let publicOrderGET: PublicOrderRoute['GET'];
 let getOrderRepo: (typeof import('@/lib/repositories').getOrderRepo);
 let resetRateLimitStore: () => void;
 let resetStore: () => void;
 
 /** orderId capturado de create-preference, usado como external_reference por el mock de MP. */
 let lastOrderId = '';
+
+/** external_reference que el mock de MP captura del body de la preferencia. */
+let lastExternalReference = '';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -87,10 +92,20 @@ function signWebhook(paymentId: number, requestId: string, ts: number): string {
 function mockMpFetch() {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: RequestInfo | URL) => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
 
       if (url.includes('/checkout/preferences')) {
+        // Capturar el external_reference que nuestra preferencia envía (como lo
+        // haría MercadoPago real al devolverlo en el pago).
+        if (init?.body) {
+          try {
+            const body = JSON.parse(String(init.body)) as { external_reference?: string };
+            lastExternalReference = body.external_reference || '';
+          } catch {
+            lastExternalReference = '';
+          }
+        }
         return new Response(
           JSON.stringify({
             id: 'PREF-123',
@@ -108,7 +123,7 @@ function mockMpFetch() {
             id: 123456,
             status: 'approved',
             status_detail: 'accredited',
-            external_reference: lastOrderId,
+            external_reference: lastExternalReference || lastOrderId,
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
@@ -136,12 +151,14 @@ beforeAll(async () => {
   vi.resetModules();
   const createPref = await import('@/app/api/mercadopago/create-preference/route');
   const webhook = await import('@/app/api/mercadopago/webhook/route');
+  const publicOrder = await import('@/app/api/orders/[id]/route');
   const repos = await import('@/lib/repositories');
   const rl = await import('@/lib/rate-limit');
   const store = await import('@/lib/store');
 
   createPreferencePOST = createPref.POST;
   webhookPOST = webhook.POST;
+  publicOrderGET = publicOrder.GET;
   getOrderRepo = repos.getOrderRepo;
   resetRateLimitStore = rl.resetRateLimitStore;
   resetStore = store.resetStore;
@@ -155,6 +172,7 @@ beforeEach(() => {
   resetStore();
   resetRateLimitStore();
   lastOrderId = '';
+  lastExternalReference = '';
 });
 
 afterAll(() => {
@@ -182,6 +200,10 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(data.preference?.init_point).toContain('mercadopago.com');
     lastOrderId = data.orderId;
 
+    // La preferencia debe enviar external_reference = id de la orden para que el
+    // webhook pueda correlacionar el pago con la orden.
+    expect(lastExternalReference).toBe(data.orderId);
+
     // 2) La orden se crea en estado "pending" con los items del carrito
     const pending = getOrderRepo().findById(lastOrderId);
     expect(pending).toBeDefined();
@@ -202,6 +224,95 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     // 4) La orden cambia a "confirmed"
     const updated = getOrderRepo().findById(lastOrderId);
     expect(updated!.status).toBe('confirmed');
+  });
+
+  it('debería_la_ruta_pública_de_orden_devolver_el_detalle_al_cliente', async () => {
+    // Crear una orden como en producción
+    const created = await createPreferencePOST(
+      makeApiRequest('/api/mercadopago/create-preference', {
+        origin: 'https://switchandtech.com',
+        ip: '203.0.113.30',
+        body: buildCheckoutPayload(),
+      })
+    );
+    expect(created.status).toBe(200);
+    const { orderId } = await created.json();
+
+    // El cliente (sin sesión de admin) consulta su orden vía ruta pública
+    const res = await publicOrderGET(
+      new Request(`https://switchandtech.com/api/orders/${orderId}`, {
+        headers: { 'x-forwarded-for': '203.0.113.31' },
+      }),
+      { params: Promise.resolve({ id: orderId }) }
+    );
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.order.id).toBe(orderId);
+    expect(data.order.items).toHaveLength(2);
+    expect(data.order.total).toBe(249 * 2 + 399);
+    expect(data.order.status).toBe('pending');
+  });
+
+  it('debería_la_ruta_pública_no_exponer_datos_personales_ni_de_envío', async () => {
+    // Crear una orden con PSE (incluye identificación del pagador)
+    const created = await createPreferencePOST(
+      makeApiRequest('/api/mercadopago/create-preference', {
+        origin: 'https://switchandtech.com',
+        ip: '203.0.113.40',
+        body: {
+          ...buildCheckoutPayload(),
+          paymentMethod: 'pse',
+          payer: {
+            name: 'Juan Pérez',
+            email: 'juan@example.com',
+            identification: { type: 'CC', number: '1018456789' },
+          },
+        },
+      })
+    );
+    expect(created.status).toBe(200);
+    const { orderId } = await created.json();
+
+    const res = await publicOrderGET(
+      new Request(`https://switchandtech.com/api/orders/${orderId}`, {
+        headers: { 'x-forwarded-for': '203.0.113.41' },
+      }),
+      { params: Promise.resolve({ id: orderId }) }
+    );
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    // Debe incluir los campos de la página de confirmación
+    expect(data.order.id).toBe(orderId);
+    expect(data.order.total).toBeGreaterThan(0);
+    expect(data.order.status).toBeTruthy();
+
+    // NO debe exponer datos personales ni de envío
+    expect(data.order.payerIdentification).toBeUndefined();
+    expect(data.order.shipping).toBeUndefined();
+    expect(data.order.userId).toBeUndefined();
+    expect(data.order.mpPaymentId).toBeUndefined();
+    expect(data.order.mpPreferenceId).toBeUndefined();
+  });
+
+  it('debería_la_ruta_pública_rechazar_ids_inválidos_y_no_encontrados', async () => {
+    const headers = { 'x-forwarded-for': '203.0.113.32' };
+
+    // ID que no parece una orden → 404
+    const bad = await publicOrderGET(
+      new Request('https://switchandtech.com/api/orders/foo', { headers }),
+      { params: Promise.resolve({ id: 'foo' }) }
+    );
+    expect(bad.status).toBe(404);
+
+    // ID con formato de orden pero inexistente → 404
+    const missing = await publicOrderGET(
+      new Request('https://switchandtech.com/api/orders/ORD-NOPE-123', { headers }),
+      { params: Promise.resolve({ id: 'ORD-NOPE-123' }) }
+    );
+    expect(missing.status).toBe(404);
   });
 
   it('debería_rechazar_webhook_con_firma_inválida_sin_cambiar_el_estado_de_la_orden', async () => {
