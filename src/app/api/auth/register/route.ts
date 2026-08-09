@@ -2,9 +2,25 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
 import { registerServerSchema } from '@/lib/validation';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 export async function POST(request: Request) {
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
+    const rl = await checkRouteRateLimit(request, {
+      maxRequests: 5,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = registerServerSchema.safeParse(body);
 

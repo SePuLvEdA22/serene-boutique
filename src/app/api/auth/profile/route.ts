@@ -4,9 +4,25 @@ import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
 import { verifyUserToken } from '@/lib/auth';
 import { updateProfileSchema, changePasswordSchema } from '@/lib/validation';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 export async function PUT(request: Request) {
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
+    const rl = await checkRouteRateLimit(request, {
+      maxRequests: 10,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token');
 

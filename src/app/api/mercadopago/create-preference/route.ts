@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOrderRepo } from '@/lib/repositories';
 import { buildPreference, type PaymentMethodType } from '@/lib/mercadopago';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 const mpAccessToken = process.env.MP_ACCESS_TOKEN;
 
@@ -44,7 +46,21 @@ const preferenceSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
+    const rl = await checkRouteRateLimit(request, {
+      maxRequests: 10,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = preferenceSchema.safeParse(body);
 

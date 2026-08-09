@@ -4,9 +4,13 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { ensureAdminUser, signAdminToken } from '@/lib/admin';
 import { adminLoginSchema } from '@/lib/validation';
-import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   const response = NextResponse.json({ message: 'Sesión cerrada' });
   response.cookies.set('admin-token', '', { maxAge: 0, path: '/' });
   response.cookies.set('auth-token', '', { maxAge: 0, path: '/' });
@@ -16,8 +20,11 @@ export async function DELETE() {
 export async function POST(request: Request) {
   ensureAdminUser();
 
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
-    const rl = checkRateLimit(rateLimitKey(request), {
+    const rl = await checkRouteRateLimit(request, {
       maxRequests: 5,
       windowMs: 60_000,
     });

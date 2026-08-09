@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOrderRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 const validStatuses = ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] as const;
 
@@ -31,7 +33,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
+    const rl = await checkRouteRateLimit(request, {
+      maxRequests: 30,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const parsed = updateStatusSchema.safeParse(body);

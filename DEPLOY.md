@@ -28,6 +28,9 @@ Guía paso a paso para desplegar **Switch&Tech** en **Vercel** con integración 
 | `ADMIN_EMAIL` | `admin@switchandtech.mx` | Email del administrador |
 | `ADMIN_PASSWORD` | `(contraseña segura)` | Contraseña del administrador |
 | `STORE_DRIVER` | `lowdb` | Usar almacenamiento persistente en archivo |
+| `MP_WEBHOOK_SECRET` | `(secret del webhook, panel MP)` | Verificar firma de webhooks de MercadoPago |
+| `UPSTASH_REDIS_REST_URL` | `(opcional)` | Rate limiting distribuido entre instancias |
+| `UPSTASH_REDIS_REST_TOKEN` | `(opcional)` | Token REST de Upstash Redis |
 
 6. Click en **"Deploy"**
 7. Esperar a que termine el primer deploy — Vercel mostrará una URL tipo `switchandtech.vercel.app`

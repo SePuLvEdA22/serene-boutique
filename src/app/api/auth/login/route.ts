@@ -3,11 +3,15 @@ import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
 import { loginSchema } from '@/lib/validation';
 import { signUserToken } from '@/lib/auth';
-import { checkRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 export async function POST(request: Request) {
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
-    const rl = checkRateLimit(rateLimitKey(request), {
+    const rl = await checkRouteRateLimit(request, {
       maxRequests: 5,
       windowMs: 60_000,
     });

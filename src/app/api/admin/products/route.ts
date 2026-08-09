@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getProductRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
 import { ProductSchema } from '@/lib/models';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 export async function GET() {
   const user = await requireAdmin();
@@ -18,7 +20,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
+    const rl = await checkRouteRateLimit(request, {
+      maxRequests: 30,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
 
     if (!body.name || !body.price || !body.category) {

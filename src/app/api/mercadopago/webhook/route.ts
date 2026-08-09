@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getOrderRepo } from '@/lib/repositories';
+import { verifyWebhookSignature } from '@/lib/webhook-signature';
+import { isTestMode } from '@/lib/mercadopago';
+import type { OrderStatus } from '@/lib/models';
 
 /**
  * Webhook de MercadoPago.
@@ -8,9 +11,18 @@ import { getOrderRepo } from '@/lib/repositories';
  * el estado de las órdenes correspondientes.
  *
  * Referencia: https://www.mercadopago.com.co/developers/es/docs/checkout-pro/additional-content/your-integrations/notifications/webhooks
+ *
+ * Seguridad:
+ * - NO aplica CSRF (MercadoPago es servidor-a-servidor y no envía Origin).
+ * - En modo producción, exige firma válida (x-signature) o verificación
+ *   del pago contra la API real; las notificaciones no verificables se
+ *   rechazan con 401 (no se acepta "modo test" en silencio).
  */
 
+export const runtime = 'nodejs';
+
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET;
 
 interface MercadoPagoPayment {
   id: number;
@@ -51,8 +63,6 @@ async function getPaymentInfo(paymentId: number): Promise<MercadoPagoPayment | n
   }
 }
 
-import type { OrderStatus } from '@/lib/models';
-
 function mapMpStatusToOrderStatus(mpStatus: string): OrderStatus | null {
   switch (mpStatus) {
     case 'approved':
@@ -87,13 +97,40 @@ export async function POST(request: Request) {
     if (type === 'payment' && data?.id) {
       const paymentId = data.id as number;
 
+      // Verificar firma si hay secret configurado (recomendado en producción)
+      if (MP_WEBHOOK_SECRET) {
+        const valid = verifyWebhookSignature({
+          signatureHeader: request.headers.get('x-signature'),
+          requestId: request.headers.get('x-request-id'),
+          dataId: String(paymentId),
+          secret: MP_WEBHOOK_SECRET,
+        });
+
+        if (!valid) {
+          console.error('[MercadoPago Webhook] Firma inválida — notificación rechazada');
+          return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
+        }
+      }
+
       // Obtener detalles del pago
       const payment = await getPaymentInfo(paymentId);
 
       if (!payment) {
-        // En modo test, aceptar la notificación sin verificar
-        console.log('[MercadoPago Webhook] Modo test: notificación aceptada');
-        return NextResponse.json({ received: true }, { status: 200 });
+        if (isTestMode) {
+          // Sin credenciales reales de MP: aceptar con aviso explícito.
+          console.warn('[MercadoPago Webhook] Modo test: notificación aceptada sin verificación');
+          return NextResponse.json({ received: true }, { status: 200 });
+        }
+        if (MP_WEBHOOK_SECRET) {
+          // Firma ya validada arriba; sin datos del pago suele faltar MP_ACCESS_TOKEN.
+          // Se acepta para no provocar reintentos infinitos de MercadoPago.
+          console.error(
+            '[MercadoPago Webhook] Firma válida pero no se pudo obtener el pago (¿MP_ACCESS_TOKEN configurado?)'
+          );
+          return NextResponse.json({ received: true }, { status: 200 });
+        }
+        console.error('[MercadoPago Webhook] No se pudo verificar el pago — rechazada');
+        return NextResponse.json({ error: 'No se pudo verificar el pago' }, { status: 401 });
       }
 
       console.log('[MercadoPago Webhook] Pago:', {

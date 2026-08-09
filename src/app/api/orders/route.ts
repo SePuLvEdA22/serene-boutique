@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { getOrderRepo } from '@/lib/repositories';
 import { verifyUserToken } from '@/lib/auth';
+import { checkRouteRateLimit } from '@/lib/rate-limit';
+import { csrfBlocked } from '@/lib/csrf';
 
 const createOrderSchema = z.object({
   items: z
@@ -33,7 +35,21 @@ const createOrderSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const blocked = csrfBlocked(request);
+  if (blocked) return blocked;
+
   try {
+    const rl = await checkRouteRateLimit(request, {
+      maxRequests: 10,
+      windowMs: 60_000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = createOrderSchema.safeParse(body);
 
