@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
 import { loginSchema } from '@/lib/validation';
 import { signUserToken } from '@/lib/auth';
+import { signAdminToken } from '@/lib/admin';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
 
@@ -49,7 +50,10 @@ export async function POST(request: Request) {
     });
 
     const response = NextResponse.json(
-      { user: { id: user.id, name: user.name, email: user.email } },
+      {
+        user: { id: user.id, name: user.name, email: user.email, isAdmin: user.isAdmin === true },
+        isAdmin: user.isAdmin === true,
+      },
       { status: 200 }
     );
 
@@ -60,6 +64,19 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
+
+    // Si la cuenta es administrador, también abrir sesión de admin
+    // para que el proxy redirija al panel y el acceso a /admin funcione.
+    if (user.isAdmin) {
+      const adminToken = await signAdminToken(user.id);
+      response.cookies.set('admin-token', adminToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24,
+        path: '/',
+      });
+    }
 
     return response;
   } catch {

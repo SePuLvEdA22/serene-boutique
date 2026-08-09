@@ -97,7 +97,22 @@ export default function UserDropdown() {
             Mi Perfil
           </Link>
 
-          <hr className="my-1 border-outline-variant/50" />
+          {user?.isAdmin && (
+            <>
+              <Link
+                href="/admin"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Panel de administración
+              </Link>
+              <hr className="my-1 border-outline-variant/50" />
+            </>
+          )}
 
           <button
             onClick={() => {

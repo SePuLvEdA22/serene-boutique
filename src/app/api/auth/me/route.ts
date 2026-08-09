@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyUserToken } from '@/lib/auth';
+import { getUserRepo } from '@/lib/repositories';
 
 export async function GET() {
   try {
@@ -17,8 +18,15 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 200 });
     }
 
+    const stored = getUserRepo().findById(payload.id);
+
     return NextResponse.json({
-      user: { id: payload.id, name: payload.name, email: payload.email },
+      user: {
+        id: payload.id,
+        name: payload.name,
+        email: payload.email,
+        isAdmin: stored?.isAdmin === true,
+      },
     });
   } catch {
     return NextResponse.json({ user: null }, { status: 200 });

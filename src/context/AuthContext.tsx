@@ -6,6 +6,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  isAdmin?: boolean;
 }
 
 interface WishlistItem {
@@ -13,10 +14,15 @@ interface WishlistItem {
   addedAt: string;
 }
 
+export interface LoginResult {
+  error: string | null;
+  isAdmin: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<string | null>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   register: (name: string, email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
   wishlist: WishlistItem[];
@@ -55,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [wishlist]);
 
-  const login = useCallback(async (email: string, password: string): Promise<string | null> => {
+  const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -63,11 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) return data.error || 'Error al iniciar sesión';
+      if (!res.ok) return { error: data.error || 'Error al iniciar sesión', isAdmin: false };
       setUser(data.user);
-      return null;
+      return { error: null, isAdmin: data.isAdmin === true };
     } catch {
-      return 'Error de conexión';
+      return { error: 'Error de conexión', isAdmin: false };
     }
   }, []);
 

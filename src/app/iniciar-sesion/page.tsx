@@ -33,11 +33,14 @@ export default function IniciarSesionPage() {
     }
 
     setLoading(true);
-    const err = await login(data.email, data.password);
+    const loginResult = await login(data.email, data.password);
 
-    if (err) {
-      setErrors({ form: err });
+    if (loginResult.error) {
+      setErrors({ form: loginResult.error });
       setLoading(false);
+    } else if (loginResult.isAdmin) {
+      addToast('Bienvenido al panel de administración', 'success');
+      router.push('/admin');
     } else {
       addToast('Sesión iniciada correctamente', 'success');
       router.push('/');
