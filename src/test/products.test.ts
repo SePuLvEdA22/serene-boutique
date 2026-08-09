@@ -3,31 +3,24 @@ import { formatPrice } from '@/lib/format-price';
 
 describe('formatPrice', () => {
   it('formats integer prices correctly', () => {
-    const result = formatPrice(249);
-    expect(result).toContain('249');
-    // Formato es-CO: coma decimal (249 → "249,00")
-    expect(result).toMatch(/,\d{2}$/);
+    expect(formatPrice(249)).toBe('$249');
   });
 
-  it('formats decimal prices correctly', () => {
-    const result = formatPrice(249.50);
-    expect(result).toContain('249,50');
-    expect(result).toMatch(/,\d{2}$/);
+  it('rounds decimal prices to integer pesos', () => {
+    expect(formatPrice(249.49)).toBe('$249');
+    expect(formatPrice(249.50)).toBe('$250');
   });
 
   it('formats large prices with thousands separator', () => {
-    const result = formatPrice(1299);
-    expect(result).toContain('1.299,00');
-    expect(result).toMatch(/\d\.\d{3},\d{2}/);
+    expect(formatPrice(1299)).toBe('$1.299');
+    expect(formatPrice(459000)).toBe('$459.000');
   });
 
   it('formats zero correctly', () => {
-    const result = formatPrice(0);
-    expect(result).toMatch(/0,\d{2}$/);
+    expect(formatPrice(0)).toBe('$0');
   });
 
-  it('always shows two decimal places', () => {
-    const result = formatPrice(100);
-    expect(result).toMatch(/,\d{2}$/);
+  it('always shows integer pesos without decimals', () => {
+    expect(formatPrice(100)).toBe('$100');
   });
 });
