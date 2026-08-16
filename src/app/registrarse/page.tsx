@@ -103,6 +103,7 @@ export default function RegistrarsePage() {
       email: formData.get('email') as string,
       password: formData.get('password') as string,
       confirm: formData.get('confirm') as string,
+      consent: formData.get('consent') === 'on',
     };
 
     const result = registerSchema.safeParse(data);
@@ -112,7 +113,7 @@ export default function RegistrarsePage() {
     }
 
     setLoading(true);
-    const err = await register(data.name, data.email, data.password);
+    const err = await register(data.name, data.email, data.password, data.consent);
 
     if (err) {
       setErrors({ form: err });
@@ -270,6 +271,25 @@ export default function RegistrarsePage() {
             )}
 
             {errors.confirm && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.confirm}</p>}
+          </div>
+
+          {/* Consentimiento explícito (Ley 1581) */}
+          <div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="consent"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+              />
+              <span className="font-body text-sm text-on-surface-variant">
+                He leído y acepto la{' '}
+                <Link href="/privacidad" className="text-primary underline transition-colors hover:text-primary/80">
+                  Política de Privacidad
+                </Link>{' '}
+                y el tratamiento de mis datos personales.
+              </span>
+            </label>
+            {errors.consent && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.consent}</p>}
           </div>
 
           {errors.form && <p className="font-body text-sm text-error" role="alert">{errors.form}</p>}

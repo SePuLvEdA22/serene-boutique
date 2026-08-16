@@ -24,13 +24,14 @@ export async function POST(request: Request) {
     const parsed = newsletterSchema.safeParse(body);
 
     if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
       return NextResponse.json(
-        { error: 'Email inválido' },
+        { error: firstError?.message || 'Email inválido' },
         { status: 400 }
       );
     }
 
-    const { email } = parsed.data;
+    const { email, consent } = parsed.data;
     const existing = db.subscribers.get().find(s => s.email === email);
 
     if (existing) {
@@ -44,6 +45,8 @@ export async function POST(request: Request) {
       id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       email,
       subscribedAt: new Date().toISOString(),
+      // Ley 1581: registrar el consentimiento explícito al newsletter.
+      consentAt: consent ? new Date().toISOString() : undefined,
     };
 
     db.subscribers.set([...db.subscribers.get(), subscriber]);

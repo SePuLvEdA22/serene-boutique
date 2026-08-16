@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         name: 'El nombre debe tener al menos 2 caracteres',
         email: 'Email inválido',
         password: 'La contraseña debe tener al menos 8 caracteres',
+        consent: 'Debes aceptar la política de privacidad',
       };
       return NextResponse.json(
         { error: messages[field] || firstError?.message || 'Datos inválidos' },
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, password } = parsed.data;
+    const { name, email, password, consent } = parsed.data;
 
     if (getUserRepo().findByEmail(email)) {
       return NextResponse.json(
@@ -49,7 +50,15 @@ export async function POST(request: Request) {
 
     const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
-    getUserRepo().create({ id, name, email, password: hashedPassword, isAdmin: false });
+    getUserRepo().create({
+      id,
+      name,
+      email,
+      password: hashedPassword,
+      isAdmin: false,
+      // Ley 1581: registrar cuándo se dio el consentimiento explícito.
+      consentAt: consent ? new Date().toISOString() : undefined,
+    });
 
     return NextResponse.json(
       { user: { id, name, email } },

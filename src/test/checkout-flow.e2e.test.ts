@@ -34,13 +34,28 @@ let lastOrderId = '';
 /** external_reference que el mock de MP captura del body de la preferencia. */
 let lastExternalReference = '';
 
+/** Total (COP) que el mock calcula de los items de la preferencia. */
+let lastPreferenceTotal = 0;
+
+/**
+ * Monto que el mock de MP devuelve como `transaction_amount` del pago.
+ * Por defecto coincide con el total de la preferencia; los tests de monto
+ * incorrecto lo sobreescriben.
+ */
+let mockPaymentAmount: number | undefined;
+
+/** Productos reales del catálogo seed (los precios se validan contra él). */
+const FUNDA_PRICE = 249000;
+const CARGADOR_PRICE = 349000;
+const CHECKOUT_TOTAL = FUNDA_PRICE * 2 + CARGADOR_PRICE; // 847000
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function buildCheckoutPayload() {
   return {
     items: [
-      { id: 'funda-iphone-15', title: 'Funda iPhone 15', quantity: 2, unit_price: 249 },
-      { id: 'cargador-20w', title: 'Cargador 20W', quantity: 1, unit_price: 399 },
+      { id: 'funda-silicone-clear', title: 'Funda Silicona Transparente', quantity: 2, unit_price: FUNDA_PRICE },
+      { id: 'cargador-rapido-20w', title: 'Cargador Rápido 20W USB-C', quantity: 1, unit_price: CARGADOR_PRICE },
     ],
     paymentMethod: 'card',
     shipping: {
@@ -96,14 +111,20 @@ function mockMpFetch() {
       const url = String(input);
 
       if (url.includes('/checkout/preferences')) {
-        // Capturar el external_reference que nuestra preferencia envía (como lo
-        // haría MercadoPago real al devolverlo en el pago).
+        // Capturar el external_reference y el total que nuestra preferencia envía
+        // (como lo haría MercadoPago real al devolverlos en el pago).
         if (init?.body) {
           try {
-            const body = JSON.parse(String(init.body)) as { external_reference?: string };
+            const body = JSON.parse(String(init.body)) as {
+              external_reference?: string;
+              items?: { quantity: number; unit_price: number }[];
+            };
             lastExternalReference = body.external_reference || '';
+            lastPreferenceTotal =
+              body.items?.reduce((sum, i) => sum + i.quantity * i.unit_price, 0) ?? 0;
           } catch {
             lastExternalReference = '';
+            lastPreferenceTotal = 0;
           }
         }
         return new Response(
@@ -124,6 +145,7 @@ function mockMpFetch() {
             status: 'approved',
             status_detail: 'accredited',
             external_reference: lastExternalReference || lastOrderId,
+            transaction_amount: mockPaymentAmount ?? lastPreferenceTotal,
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
@@ -173,6 +195,8 @@ beforeEach(() => {
   resetRateLimitStore();
   lastOrderId = '';
   lastExternalReference = '';
+  lastPreferenceTotal = 0;
+  mockPaymentAmount = undefined;
 });
 
 afterAll(() => {
@@ -209,7 +233,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(pending).toBeDefined();
     expect(pending!.status).toBe('pending');
     expect(pending!.items).toHaveLength(2);
-    expect(pending!.total).toBe(249 * 2 + 399);
+    expect(pending!.total).toBe(CHECKOUT_TOTAL);
     expect(pending!.paymentMethod).toBe('card');
 
     // 3) MercadoPago notifica el pago aprobado con firma válida (sin Origin: server-to-server)
@@ -250,7 +274,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     const data = await res.json();
     expect(data.order.id).toBe(orderId);
     expect(data.order.items).toHaveLength(2);
-    expect(data.order.total).toBe(249 * 2 + 399);
+    expect(data.order.total).toBe(CHECKOUT_TOTAL);
     expect(data.order.status).toBe('pending');
   });
 
@@ -313,6 +337,84 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
       { params: Promise.resolve({ id: 'ORD-NOPE-123' }) }
     );
     expect(missing.status).toBe(404);
+  });
+
+  it('debería_rechazar_precio_manipulado_sin_crear_orden', async () => {
+    const ordersBefore = getOrderRepo().findAll().length;
+
+    const tampered = {
+      ...buildCheckoutPayload(),
+      items: [
+        { id: 'funda-silicone-clear', title: 'Funda Silicona Transparente', quantity: 1, unit_price: 1 },
+      ],
+    };
+
+    const res = await createPreferencePOST(
+      makeApiRequest('/api/mercadopago/create-preference', {
+        origin: 'https://switchandtech.com',
+        ip: '203.0.113.80',
+        body: tampered,
+      })
+    );
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Precio inválido');
+
+    // No se debe haber creado ninguna orden nueva
+    expect(getOrderRepo().findAll()).toHaveLength(ordersBefore);
+  });
+
+  it('debería_rechazar_producto_inexistente_sin_crear_orden', async () => {
+    const ordersBefore = getOrderRepo().findAll().length;
+
+    const bogus = {
+      ...buildCheckoutPayload(),
+      items: [
+        { id: 'producto-no-existe', title: 'Fake', quantity: 1, unit_price: FUNDA_PRICE },
+      ],
+    };
+
+    const res = await createPreferencePOST(
+      makeApiRequest('/api/mercadopago/create-preference', {
+        origin: 'https://switchandtech.com',
+        ip: '203.0.113.81',
+        body: bogus,
+      })
+    );
+
+    expect(res.status).toBe(400);
+    expect(getOrderRepo().findAll()).toHaveLength(ordersBefore);
+  });
+
+  it('debería_rechazar_webhook_con_monto_incorrecto_sin_confirmar_la_orden', async () => {
+    // Crear una orden pendiente real (total del catálogo)
+    const created = await createPreferencePOST(
+      makeApiRequest('/api/mercadopago/create-preference', {
+        origin: 'https://switchandtech.com',
+        ip: '203.0.113.82',
+        body: buildCheckoutPayload(),
+      })
+    );
+    expect(created.status).toBe(200);
+    const { orderId } = await created.json();
+    lastOrderId = orderId;
+
+    // El pago llega por un monto que NO coincide con la orden (p. ej. $1)
+    mockPaymentAmount = 1;
+
+    const paymentId = 123456;
+    const requestId = 'req-monto';
+    const ts = Math.floor(Date.now() / 1000);
+    const v1 = signWebhook(paymentId, requestId, ts);
+
+    const res = await webhookPOST(makeWebhookRequest(paymentId, requestId, ts, v1));
+    expect(res.status).toBe(409);
+
+    // La orden NO debe cambiar de estado: sigue pendiente
+    const order = getOrderRepo().findById(orderId);
+    expect(order!.status).toBe('pending');
+    expect(order!.mpPaymentId).toBeUndefined();
   });
 
   it('debería_rechazar_webhook_con_firma_inválida_sin_cambiar_el_estado_de_la_orden', async () => {

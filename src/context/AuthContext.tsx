@@ -23,7 +23,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
-  register: (name: string, email: string, password: string) => Promise<string | null>;
+  register: (name: string, email: string, password: string, consent: boolean) => Promise<string | null>;
+  deleteAccount: (password: string) => Promise<string | null>;
   logout: () => Promise<void>;
   wishlist: WishlistItem[];
   addToWishlist: (productId: string) => void;
@@ -77,15 +78,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string): Promise<string | null> => {
+  const register = useCallback(async (name: string, email: string, password: string, consent: boolean): Promise<string | null> => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, consent }),
       });
       const data = await res.json();
       if (!res.ok) return data.error || 'Error al registrar';
+      return null;
+    } catch {
+      return 'Error de conexión';
+    }
+  }, []);
+
+  const deleteAccount = useCallback(async (password: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) return data.error || 'Error al eliminar la cuenta';
+      setUser(null);
+      try { localStorage.removeItem('switch-tech-cart'); } catch {}
+      window.dispatchEvent(new CustomEvent('cart:clear'));
       return null;
     } catch {
       return 'Error de conexión';
@@ -116,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, wishlist, addToWishlist, removeFromWishlist, isInWishlist }}
+      value={{ user, loading, login, register, deleteAccount, logout, wishlist, addToWishlist, removeFromWishlist, isInWishlist }}
     >
       {children}
     </AuthContext.Provider>

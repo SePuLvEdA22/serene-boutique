@@ -17,6 +17,7 @@ export interface IUserRepository {
   findByEmail(email: string): User | undefined;
   create(user: User): void;
   update(id: string, data: Partial<User>): void;
+  delete(id: string): boolean;
 }
 
 export interface IOrderRepository {
@@ -25,6 +26,8 @@ export interface IOrderRepository {
   findByUser(userId: string): Order[];
   create(order: Order): void;
   updateStatus(id: string, status: OrderStatus): Order | undefined;
+  update(id: string, data: Partial<Order>): Order | undefined;
+  delete(id: string): boolean;
 }
 
 export interface IContactRepository {

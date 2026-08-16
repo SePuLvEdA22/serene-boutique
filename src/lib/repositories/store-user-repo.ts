@@ -26,4 +26,13 @@ export class StoreUserRepository implements IUserRepository {
     list[index] = { ...list[index], ...data };
     db.users.set(list);
   }
+
+  delete(id: string): boolean {
+    const list = db.users.get();
+    const index = list.findIndex(u => u.id === id);
+    if (index === -1) return false;
+    list.splice(index, 1);
+    db.users.set(list);
+    return true;
+  }
 }

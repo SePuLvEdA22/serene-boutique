@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOrderRepo } from '@/lib/repositories';
 import { buildPreference, type PaymentMethodType } from '@/lib/mercadopago';
+import { validateOrderItems } from '@/lib/order-items';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
 
@@ -73,6 +74,24 @@ export async function POST(request: Request) {
 
     const { items, paymentMethod, payer, shipping } = parsed.data;
 
+    // Seguridad: validar items contra el catálogo. Los precios y nombres del
+    // cliente NO se aceptan tal cual — se recalculan desde la base de productos
+    // para impedir manipulación de precios (p. ej. pagar $1 por un producto caro).
+    const validated = validateOrderItems(
+      items.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      }))
+    );
+
+    if (!validated.ok) {
+      return NextResponse.json(
+        { error: validated.errors[0] || 'Items de orden inválidos' },
+        { status: 400 }
+      );
+    }
+
     // Crear orden en estado "pending" con información de pago
     const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
@@ -81,12 +100,12 @@ export async function POST(request: Request) {
     const origin =
       request.headers.get('origin') || new URL(request.url).origin || 'https://switchandtech.com';
 
-    // Construir preferencia usando la librería
+    // Construir preferencia usando la librería (items canónicos del catálogo)
     const preference = buildPreference({
-      items: items.map((item) => ({
-        id: item.id,
-        name: item.title,
-        price: item.unit_price,
+      items: validated.items.map((item) => ({
+        id: item.productId,
+        name: item.name,
+        price: item.price,
         quantity: item.quantity,
       })),
       paymentMethod: paymentMethod as PaymentMethodType,
@@ -103,11 +122,12 @@ export async function POST(request: Request) {
 
     const order = {
       id: orderId,
-      items: items.map((item) => ({
-        productId: item.id,
-        name: item.title,
-        price: item.unit_price,
+      items: validated.items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
         quantity: item.quantity,
+        ...(item.color ? { color: item.color } : {}),
       })),
       shipping: shipping
         ? {
@@ -129,7 +149,8 @@ export async function POST(request: Request) {
             state: '',
             zip: '',
           },
-      total: items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0),
+      // Total recalculado en el servidor con precios del catálogo
+      total: validated.total,
       paymentMethod,
       payerIdentification: payer?.identification,
       status: 'pending' as const,

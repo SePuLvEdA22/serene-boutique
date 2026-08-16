@@ -5,9 +5,11 @@
  * The database is auto-seeded with products on first access.
  */
 import bcrypt from 'bcryptjs';
+import { getAdminEmail, getAdminPassword } from '../src/lib/admin-config';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@switchandtech.mx';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+// Credenciales desde entorno con fail-fast en producción (sin fallbacks inseguros).
+const ADMIN_EMAIL = getAdminEmail();
+const ADMIN_PASSWORD = getAdminPassword();
 
 async function main() {
   console.log(`Admin email: ${ADMIN_EMAIL}`);

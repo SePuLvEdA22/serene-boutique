@@ -20,6 +20,7 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirm: z.string().trim().min(1, 'Confirma tu contraseña'),
+    consent: z.literal(true, { error: 'Debes aceptar la política de privacidad' }),
   })
   .refine((data) => data.password === data.confirm, {
     message: 'Las contraseñas no coinciden',
@@ -31,6 +32,8 @@ export const registerServerSchema = z.object({
   name: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: emailSchema,
   password: passwordSchema,
+  /** Consentimiento explícito a la política de privacidad (Ley 1581). */
+  consent: z.literal(true, { error: 'Debes aceptar la política de privacidad' }),
 });
 
 export const contactSchema = z.object({
@@ -89,6 +92,8 @@ export const changePasswordSchema = z
 
 export const newsletterSchema = z.object({
   email: emailSchema,
+  /** Consentimiento explícito al tratamiento de datos para el newsletter. */
+  consent: z.literal(true, { error: 'Debes aceptar la política de privacidad' }),
 });
 
 export function formatZodErrors(

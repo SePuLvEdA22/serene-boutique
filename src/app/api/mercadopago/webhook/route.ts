@@ -30,8 +30,11 @@ interface MercadoPagoPayment {
   status_detail: string;
   external_reference?: string;
   payment_method_id?: string;
+  /** Monto total pagado en COP. Se compara contra el total de la orden. */
+  transaction_amount?: number;
   transaction_details?: {
     payment_method_reference_id?: string;
+    total_paid_amount?: number;
   };
 }
 
@@ -83,7 +86,13 @@ function mapMpStatusToOrderStatus(mpStatus: string): OrderStatus | null {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('[MercadoPago Webhook] Notificación recibida:', JSON.stringify(body));
+    // Log mínimo sin PII: el body completo puede incluir datos del pagador
+    // (email, identificación) y no debe registrarse en los logs.
+    console.log('[MercadoPago Webhook] Notificación recibida:', {
+      type: (body as Record<string, unknown>).type,
+      action: (body as Record<string, unknown>).action,
+      dataId: (body as { data?: { id?: unknown } }).data?.id,
+    });
 
     // MercadoPago envía diferentes tipos de notificaciones
     const { type, action, data } = body;
@@ -146,9 +155,30 @@ export async function POST(request: Request) {
       if (orderStatus && payment.external_reference) {
         const order = getOrderRepo().findById(payment.external_reference);
         if (order) {
-          getOrderRepo().updateStatus(payment.external_reference, orderStatus);
+          // Seguridad: verificar que el monto pagado coincida con el total de la
+          // orden. Un pago por un monto distinto (p. ej. $1) no debe confirmar la
+          // orden. Sin esta verificación, un atacante podría pagar cualquier monto
+          // y la orden quedaría como pagada.
+          const paid =
+            payment.transaction_amount ?? payment.transaction_details?.total_paid_amount;
+
+          if (paid === undefined || Math.abs(paid - order.total) > 0.01) {
+            console.error(
+              `[MercadoPago Webhook] Monto no coincide para orden ${order.id}: ` +
+                `pagado=${paid}, esperado=${order.total} — estado NO actualizado`
+            );
+            return NextResponse.json(
+              { error: 'El monto del pago no coincide con la orden' },
+              { status: 409 }
+            );
+          }
+
+          getOrderRepo().update(order.id, {
+            status: orderStatus,
+            mpPaymentId: String(payment.id),
+          });
           console.log(
-            `[MercadoPago Webhook] Orden ${payment.external_reference} actualizada a: ${orderStatus}`
+            `[MercadoPago Webhook] Orden ${order.id} actualizada a: ${orderStatus} (pago ${payment.id})`
           );
         }
       }

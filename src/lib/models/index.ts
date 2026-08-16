@@ -7,7 +7,10 @@ export {
 
 export {
   UserSchema,
+  RefreshTokenSchema,
   type User,
+  type RefreshToken,
+  type RefreshTokenKind,
 } from './user';
 
 export {

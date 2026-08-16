@@ -27,4 +27,23 @@ export class StoreOrderRepository implements IOrderRepository {
     db.orders.set(list);
     return list[index];
   }
+
+  update(id: string, data: Partial<Order>): Order | undefined {
+    const list = db.orders.get();
+    const index = list.findIndex(o => o.id === id);
+    if (index === -1) return undefined;
+    const updated = { ...list[index], ...data };
+    list[index] = updated;
+    db.orders.set(list);
+    return updated;
+  }
+
+  delete(id: string): boolean {
+    const list = db.orders.get();
+    const index = list.findIndex(o => o.id === id);
+    if (index === -1) return false;
+    list.splice(index, 1);
+    db.orders.set(list);
+    return true;
+  }
 }

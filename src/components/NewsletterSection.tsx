@@ -1,21 +1,24 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { newsletterSchema, formatZodErrors } from '@/lib/validation';
 import Spinner from '@/components/Spinner';
 
 export default function NewsletterSection() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [email, setEmail] = useState('');
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
-    const result = newsletterSchema.safeParse({ email });
+    // Consentimiento explícito requerido (Ley 1581)
+    const result = newsletterSchema.safeParse({ email, consent });
     if (!result.success) {
-      setError(formatZodErrors(result.error.issues).email || 'Email inválido');
+      setError(formatZodErrors(result.error.issues).consent || formatZodErrors(result.error.issues).email || 'Email inválido');
       return;
     }
 
@@ -25,7 +28,7 @@ export default function NewsletterSection() {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, consent }),
       });
 
       if (!res.ok) throw new Error();
@@ -45,7 +48,7 @@ export default function NewsletterSection() {
         Suscríbete para recibir novedades, colecciones exclusivas y ofertas especiales.
       </p>
       <form
-        className="mx-auto mt-6 flex max-w-md gap-3"
+        className="mx-auto mt-6 flex max-w-md flex-col gap-3"
         onSubmit={handleSubmit}
         noValidate
       >
@@ -65,6 +68,21 @@ export default function NewsletterSection() {
           />
           {error && <p className="mt-1 text-left font-body text-xs text-error" role="alert">{error}</p>}
         </div>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => { setConsent(e.target.checked); setError(''); }}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          />
+          <span className="font-body text-xs text-on-surface-variant">
+            Acepto recibir novedades y el tratamiento de mi correo según la{' '}
+            <Link href="/privacidad" className="text-primary underline transition-colors hover:text-primary/80">
+              Política de Privacidad
+            </Link>
+            .
+          </span>
+        </label>
         <button
           type="submit"
           className="btn-primary whitespace-nowrap"

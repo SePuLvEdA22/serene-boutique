@@ -1,11 +1,41 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'dev-secret-do-not-use-in-production-min-32-chars!!'
-);
+/**
+ * Secreto de firma de JWT.
+ *
+ * En producción se exige `JWT_SECRET` configurado (mín. 32 caracteres): sin él,
+ * la app falla al arrancar en vez de firmar tokens con un secreto conocido y
+ * publicado en el código. El fallback solo existe para desarrollo/test.
+ */
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (secret) {
+    if (secret.length < 32 && process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET debe tener al menos 32 caracteres en producción.');
+    }
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'JWT_SECRET no está configurado. Defínelo en las variables de entorno antes de desplegar.'
+    );
+  }
+
+  return 'dev-secret-do-not-use-in-production-min-32-chars!!';
+}
+
+const SECRET = new TextEncoder().encode(getJwtSecret());
 
 const ISSUER = 'switch-and-tech';
 const AUDIENCE = 'switch-and-tech-users';
+
+/**
+ * Los access tokens son de corta duración (15 min); la sesión se mantiene con
+ * refresh tokens opacos rotativos almacenados en el servidor (ver session.ts).
+ */
+export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 export interface UserToken extends JWTPayload {
   id: string;
@@ -15,6 +45,21 @@ export interface UserToken extends JWTPayload {
 
 export interface AdminToken extends JWTPayload {
   userId: string;
+}
+
+/** Genera un refresh token opaco (256 bits aleatorios). */
+export function generateRefreshToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+/** Hash del refresh token (SHA-256): solo se almacena el hash en la BD. */
+export function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+/** jose: un número en setExpirationTime es un timestamp Unix, no una duración. */
+function accessTokenExpiration(): number {
+  return Math.floor(Date.now() / 1000) + ACCESS_TOKEN_TTL_SECONDS;
 }
 
 export async function signUserToken(user: {
@@ -27,7 +72,7 @@ export async function signUserToken(user: {
     .setIssuedAt()
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
-    .setExpirationTime('7d')
+    .setExpirationTime(accessTokenExpiration())
     .sign(SECRET);
 }
 
@@ -37,7 +82,7 @@ export async function signAdminToken(userId: string): Promise<string> {
     .setIssuedAt()
     .setIssuer(ISSUER)
     .setAudience('switch-and-tech-admin')
-    .setExpirationTime('24h')
+    .setExpirationTime(accessTokenExpiration())
     .sign(SECRET);
 }
 
