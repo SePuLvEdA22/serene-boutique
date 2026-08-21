@@ -36,6 +36,9 @@ export const OrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1),
   shipping: ShippingSchema,
   total: z.number().nonnegative(),
+  /** Descuento aplicado por cupón (COP). El total ya lo descuenta. */
+  discount: z.number().nonnegative().optional(),
+  promoId: z.string().optional(),
   paymentMethod: paymentMethodSchema.optional(),
   mpPaymentId: z.string().optional(),
   mpPreferenceId: z.string().optional(),

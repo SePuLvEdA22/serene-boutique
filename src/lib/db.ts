@@ -1,8 +1,8 @@
 import { getStore } from './store';
-import type { StoreUser, StoreOrder, Contact, Subscriber } from './store/types';
+import type { StoreUser, StoreOrder, Contact, Subscriber, StoreSettings, StorePromo } from './store/types';
 import type { Product } from '@/lib/models';
 
-export type { StoreUser, StoreOrder, Contact, Subscriber };
+export type { StoreUser, StoreOrder, Contact, Subscriber, StoreSettings, StorePromo };
 
 function collection<T>(get: () => T[], set: (v: T[]) => void) {
   return { get, set };
@@ -30,6 +30,18 @@ function getStoreInstance() {
     subscribers: collection<Subscriber>(
       () => s.getSubscribers(),
       (v) => s.setSubscribers(v),
+    ),
+    settings: {
+      get(): StoreSettings {
+        return s.getSettings();
+      },
+      set(v: StoreSettings) {
+        s.setSettings(v);
+      },
+    },
+    promos: collection<StorePromo>(
+      () => s.getPromos(),
+      (v) => s.setPromos(v),
     ),
     get adminInitialized(): boolean {
       return s.getAdminInitialized();

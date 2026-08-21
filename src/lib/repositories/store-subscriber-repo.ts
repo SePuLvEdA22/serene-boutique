@@ -14,4 +14,12 @@ export class StoreSubscriberRepository implements ISubscriberRepository {
   create(subscriber: Subscriber): void {
     db.subscribers.set([...db.subscribers.get(), subscriber]);
   }
+
+  delete(id: string): boolean {
+    const subscribers = db.subscribers.get();
+    const next = subscribers.filter((s) => s.id !== id);
+    if (next.length === subscribers.length) return false;
+    db.subscribers.set(next);
+    return true;
+  }
 }

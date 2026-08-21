@@ -7,6 +7,8 @@ export const ContactSchema = z.object({
   subject: z.string().min(3).max(200),
   message: z.string().min(10).max(5000),
   createdAt: z.string(),
+  /** Estado de lectura para el panel de administración. */
+  read: z.boolean().optional().default(false),
 });
 
 export type Contact = z.infer<typeof ContactSchema>;

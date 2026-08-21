@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { type Product } from '@/types';
+import { type Product } from '@/lib/models';
 import { useToast } from '@/context/ToastContext';
+import PageHeader from '@/components/admin/PageHeader';
+import EmptyState from '@/components/admin/EmptyState';
 
 export default function InventarioPage() {
   const router = useRouter();
@@ -63,94 +65,94 @@ export default function InventarioPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-medium text-on-surface md:text-3xl">Inventario</h1>
-        <p className="font-body text-sm text-on-surface-variant mt-1">Gestiona el stock de tus productos</p>
-      </div>
+      <PageHeader
+        title="Inventario"
+        subtitle="Gestiona el stock de tus productos"
+      />
 
       {products.length === 0 ? (
-        <div className="rounded-2xl bg-surface-container py-16 text-center">
-          <p className="font-body text-lg text-on-surface-variant">No hay productos</p>
-        </div>
+        <EmptyState title="No hay productos" description="Crea productos para gestionar su stock aquí." />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-outline-variant/50 bg-surface">
-          <table className="w-full text-left font-body text-sm">
-            <thead>
-              <tr className="border-b border-outline-variant/50 text-xs uppercase tracking-wider text-on-surface-variant">
-                <th className="px-4 py-3 font-medium">Producto</th>
-                <th className="px-4 py-3 font-medium">Categoría</th>
-                <th className="px-4 py-3 font-medium">Stock actual</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
-                <th className="px-4 py-3 font-medium">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products
-                .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
-                .map(product => (
-                  <tr key={product.id} className="border-b border-outline-variant/30 transition-colors hover:bg-surface-container-low">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-on-surface">{product.name}</p>
-                      <p className="text-xs text-on-surface-variant">{product.id}</p>
-                    </td>
-                    <td className="px-4 py-3 capitalize text-on-surface-variant">{product.category}</td>
-                    <td className="px-4 py-3">
-                      {editingId === product.id ? (
-                        <input
-                          type="number"
-                          min="0"
-                          className="input-field w-24"
-                          value={editStock}
-                          onChange={e => setEditStock(Number(e.target.value))}
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="font-semibold text-on-surface">{product.stock ?? '—'}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {product.stock !== undefined ? (
-                        <span className={`chip ${
-                          product.stock <= 0 ? 'bg-red-100 text-red-600' :
-                          product.stock < 10 ? 'bg-yellow-100 text-yellow-600' :
-                          'bg-green-100 text-green-600'
-                        }`}>
-                          {product.stock <= 0 ? 'Agotado' : product.stock < 10 ? 'Poco stock' : 'En stock'}
-                        </span>
-                      ) : (
-                        <span className="chip">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingId === product.id ? (
-                        <div className="flex items-center gap-2">
+        <div className="overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface shadow-soft">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-body text-sm">
+              <thead>
+                <tr className="bg-surface-container-low text-xs uppercase tracking-wider text-on-surface-variant">
+                  <th className="px-4 py-3 font-semibold">Producto</th>
+                  <th className="px-4 py-3 font-semibold">Categoría</th>
+                  <th className="px-4 py-3 font-semibold">Stock actual</th>
+                  <th className="px-4 py-3 font-semibold">Estado</th>
+                  <th className="px-4 py-3 font-semibold">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products
+                  .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
+                  .map(product => (
+                    <tr key={product.id} className="border-b border-outline-variant/30 transition-colors last:border-0 hover:bg-surface-container-low/60">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-on-surface">{product.name}</p>
+                        <p className="text-xs text-on-surface-variant">{product.id}</p>
+                      </td>
+                      <td className="px-4 py-3 capitalize text-on-surface-variant">{product.category}</td>
+                      <td className="px-4 py-3">
+                        {editingId === product.id ? (
+                          <input
+                            type="number"
+                            min="0"
+                            className="input-field w-24"
+                            value={editStock}
+                            onChange={e => setEditStock(Number(e.target.value))}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="font-semibold text-on-surface">{product.stock ?? '—'}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {product.stock !== undefined ? (
+                          <span className={`chip ${
+                            product.stock <= 0 ? 'bg-red-100 text-red-600' :
+                            product.stock < 10 ? 'bg-yellow-100 text-yellow-600' :
+                            'bg-green-100 text-green-600'
+                          }`}>
+                            {product.stock <= 0 ? 'Agotado' : product.stock < 10 ? 'Poco stock' : 'En stock'}
+                          </span>
+                        ) : (
+                          <span className="chip">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {editingId === product.id ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => saveStock(product.id)}
+                              className="rounded-lg px-3 py-1.5 text-xs bg-primary text-on-primary transition-colors hover:bg-primary/90"
+                              disabled={updating}
+                            >
+                              {updating ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="btn-ghost text-xs"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={() => saveStock(product.id)}
-                            className="rounded-lg px-3 py-1.5 text-xs bg-primary text-on-primary transition-colors hover:bg-primary/90"
-                            disabled={updating}
+                            onClick={() => startEdit(product)}
+                            className="btn-ghost text-xs"
                           >
-                            {updating ? 'Guardando...' : 'Guardar'}
+                            Editar stock
                           </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="rounded-lg px-3 py-1.5 text-xs text-on-surface-variant transition-colors hover:bg-surface-container"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => startEdit(product)}
-                          className="rounded-lg px-3 py-1.5 text-xs text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-                        >
-                          Editar stock
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -22,6 +22,7 @@ export function ensureAdminUser() {
       email,
       password: bcrypt.hashSync(password, 10),
       isAdmin: true,
+      createdAt: new Date().toISOString(),
     });
   }
 

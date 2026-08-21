@@ -11,7 +11,7 @@ export async function GET() {
   const users = getUserRepo()
     .findAll()
     .filter(u => !u.isAdmin)
-    .map(({ password: _, ...rest }) => rest);
+    .map((u) => ({ id: u.id, name: u.name, email: u.email }));
 
   return NextResponse.json({ users });
 }

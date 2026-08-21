@@ -107,31 +107,31 @@ export default function ProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-xl border border-outline-variant/50 bg-surface p-6">
+    <form onSubmit={handleSubmit} className="admin-card admin-card-pad flex flex-col gap-5">
       <div>
-        <label htmlFor="name" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Nombre *</label>
+        <label htmlFor="name" className="admin-label mb-2">Nombre *</label>
         <input id="name" name="name" type="text" className="input-field" defaultValue={initial?.name ?? ''} required />
       </div>
 
       <div>
-        <label htmlFor="description" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Descripción</label>
+        <label htmlFor="description" className="admin-label mb-2">Descripción</label>
         <textarea id="description" name="description" rows={4} className="input-field resize-none" defaultValue={initial?.description ?? ''} />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="price" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Precio (COP) *</label>
+          <label htmlFor="price" className="admin-label mb-2">Precio (COP) *</label>
           <input id="price" name="price" type="number" step="1" min="0" className="input-field" defaultValue={initial?.price ?? ''} required />
         </div>
         <div>
-          <label htmlFor="salePrice" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Precio de oferta (COP)</label>
+          <label htmlFor="salePrice" className="admin-label mb-2">Precio de oferta (COP)</label>
           <input id="salePrice" name="salePrice" type="number" step="1" min="0" className="input-field" defaultValue={initial?.salePrice ?? ''} placeholder="Opcional — menor que el precio" />
         </div>
       </div>
 
       {/* Imágenes */}
       <div>
-        <p className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Imágenes</p>
+        <p className="admin-label mb-2">Imágenes</p>
         <div className="flex flex-wrap gap-3">
           {images.map((url, index) => (
             <div key={url} className="relative">
@@ -183,7 +183,7 @@ export default function ProductForm({
       </div>
 
       <div>
-        <label htmlFor="category" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Categoría *</label>
+        <label htmlFor="category" className="admin-label mb-2">Categoría *</label>
         <select id="category" name="category" className="input-field" defaultValue={initial?.category ?? 'fundas'} required>
           {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
@@ -191,17 +191,17 @@ export default function ProductForm({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="stock" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Stock</label>
+          <label htmlFor="stock" className="admin-label mb-2">Stock</label>
           <input id="stock" name="stock" type="number" min="0" className="input-field" defaultValue={initial?.stock ?? ''} placeholder="0" />
         </div>
         <div>
-          <label htmlFor="colors" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Colores (separados por coma)</label>
+          <label htmlFor="colors" className="admin-label mb-2">Colores (separados por coma)</label>
           <input id="colors" name="colors" type="text" className="input-field" defaultValue={(initial?.colors || []).join(', ')} placeholder="Negro, Blanco, Rosa" />
         </div>
       </div>
 
       <div>
-        <label htmlFor="tags" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">Etiquetas (separadas por coma)</label>
+        <label htmlFor="tags" className="admin-label mb-2">Etiquetas (separadas por coma)</label>
         <input id="tags" name="tags" type="text" className="input-field" defaultValue={(initial?.tags || []).join(', ')} placeholder="oferta, nuevo, edición limitada" />
       </div>
 

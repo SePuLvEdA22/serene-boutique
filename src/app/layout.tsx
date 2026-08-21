@@ -67,6 +67,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      data-scroll-behavior="smooth"
       className={`${playfairDisplay.variable} ${dmSans.variable}`}
     >
       <body className="flex min-h-dvh flex-col bg-surface font-body text-on-surface antialiased">

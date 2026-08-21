@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       id: `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       ...parsed.data,
       createdAt: new Date().toISOString(),
+      read: false,
     };
 
     db.contacts.set([...db.contacts.get(), contact]);

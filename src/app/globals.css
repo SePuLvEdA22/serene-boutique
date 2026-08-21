@@ -292,6 +292,32 @@
     border-color: var(--color-primary-container);
   }
 
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: var(--color-error);
+    color: var(--color-on-error);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-danger:hover {
+    background-color: color-mix(in oklab, var(--color-error) 88%, black);
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .input-field {
     width: 100%;
     padding: 12px 16px;
@@ -320,6 +346,7 @@
   .chip {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     padding: 4px 12px;
     background-color: var(--color-tertiary-container);
     color: var(--color-on-tertiary-container);
@@ -327,5 +354,75 @@
     font-family: var(--font-body);
     font-size: 12px;
     font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  /* Flecha personalizada para <select> (el resto usa .input-field). */
+  select.input-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23725456' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+
+  .dark select.input-field {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0bfbc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  }
+
+  /* ---- Primitivas del panel de administración ---- */
+
+  .admin-card {
+    background-color: var(--color-surface);
+    border: 1px solid color-mix(in oklab, var(--color-outline-variant) 50%, transparent);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .admin-card-pad {
+    padding: 1.5rem;
+  }
+
+  .admin-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-on-surface-variant);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--color-surface-container);
+    color: var(--color-on-surface);
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background-color: currentColor;
+    flex-shrink: 0;
   }
 }

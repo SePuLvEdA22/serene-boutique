@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       email,
       password: hashedPassword,
       isAdmin: false,
+      createdAt: new Date().toISOString(),
       // Ley 1581: registrar cuándo se dio el consentimiento explícito.
       consentAt: consent ? new Date().toISOString() : undefined,
     });

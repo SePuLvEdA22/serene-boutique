@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getProductRepo } from '@/lib/repositories';
 import { requireAdmin } from '@/lib/admin';
+import { ProductSchema } from '@/lib/models';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
 
@@ -66,7 +67,9 @@ export async function PUT(
         ? images[0]
         : existing.image;
 
-    const updated = getProductRepo().update(id, {
+    // Merge canónico + validación con ProductSchema (igual que el POST).
+    const candidate = {
+      id: existing.id,
       name: body.name ?? existing.name,
       description: body.description ?? existing.description,
       price: body.price !== undefined ? Number(body.price) : existing.price,
@@ -84,7 +87,18 @@ export async function PUT(
       colors: body.colors ?? existing.colors,
       tags: Array.isArray(body.tags) ? body.tags.filter((t: unknown) => typeof t === 'string') : existing.tags,
       stock: body.stock !== undefined ? Number(body.stock) : existing.stock,
-    });
+      createdAt: existing.createdAt,
+    };
+
+    const parsed = ProductSchema.safeParse(candidate);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos de producto inválidos' },
+        { status: 400 }
+      );
+    }
+
+    const updated = getProductRepo().update(id, parsed.data);
 
     return NextResponse.json({ product: updated });
   } catch {

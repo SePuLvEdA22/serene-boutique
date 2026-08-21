@@ -18,6 +18,7 @@ export const UserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   isAdmin: z.boolean().optional().default(false),
+  createdAt: z.string().optional(),
   /** Momento en que el usuario aceptó la política de privacidad (Ley 1581). */
   consentAt: z.string().optional(),
   /** Intentos de login fallidos consecutivos (para bloqueo temporal de cuenta). */

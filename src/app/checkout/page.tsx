@@ -44,6 +44,14 @@ export default function CheckoutPage() {
   const [docType, setDocType] = useState<ColIdentificationType>('CC');
   const [docNumber, setDocNumber] = useState('');
 
+  // Estado del cupón de descuento
+  const [couponCode, setCouponCode] = useState('');
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const discountedTotal = Math.max(0, totalPrice - (coupon?.discount ?? 0));
+
   if (items.length === 0 && step !== 'confirm') {
     return (
       <div className="container-store py-12">
@@ -85,6 +93,31 @@ export default function CheckoutPage() {
     return true;
   };
 
+  const applyCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/promos/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal: totalPrice }),
+      });
+      const data = await res.json();
+      if (!data.valid) {
+        setCoupon(null);
+        setCouponError(data.error || 'Cupón inválido');
+        return;
+      }
+      setCoupon({ code, discount: data.discount });
+    } catch {
+      setCouponError('No se pudo validar el cupón');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
   /**
    * Procesa el pago: crea preferencia en MercadoPago y redirige al Checkout Pro.
    */
@@ -109,6 +142,7 @@ export default function CheckoutPage() {
           unit_price: getPrice(i.product),
         })),
         paymentMethod,
+        ...(coupon ? { couponCode: coupon.code } : {}),
         shipping: {
           name: shipping.name,
           email: shipping.email,
@@ -535,9 +569,9 @@ export default function CheckoutPage() {
                       <Spinner /> Conectando con MercadoPago...
                     </span>
                   ) : paymentMethod === 'pse' ? (
-                    `Pagar con PSE — ${formatPrice(totalPrice)}`
+                    `Pagar con PSE — ${formatPrice(discountedTotal)}`
                   ) : (
-                    `Pagar ${formatPrice(totalPrice)}`
+                    `Pagar ${formatPrice(discountedTotal)}`
                   )}
                 </button>
               </div>
@@ -567,10 +601,60 @@ export default function CheckoutPage() {
               ))}
             </div>
             <div className="mt-4 border-t border-outline-variant/50 pt-3">
+              {/* Cupón de descuento */}
+              <div className="mb-4">
+                <label htmlFor="coupon-code" className="mb-2 block font-body text-sm font-medium uppercase tracking-wider text-on-surface-variant">
+                  Cupón de descuento
+                </label>
+                {coupon ? (
+                  <div className="flex items-center justify-between rounded-lg bg-primary-container/30 p-3">
+                    <p className="font-body text-sm text-on-surface">
+                      <span className="chip bg-primary-container text-on-primary-container text-[11px] mr-2">{coupon.code}</span>
+                      -{formatPrice(coupon.discount)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setCoupon(null); setCouponCode(''); }}
+                      className="font-body text-xs text-on-surface-variant underline hover:text-error"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      id="coupon-code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="EJ: BIENVENIDO10"
+                      className="input-field flex-1 uppercase"
+                      maxLength={30}
+                    />
+                    <button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="rounded-lg bg-secondary px-3 py-2 font-body text-sm text-on-secondary transition-colors hover:opacity-90 disabled:opacity-40"
+                    >
+                      {couponLoading ? 'Validando...' : 'Aplicar'}
+                    </button>
+                  </div>
+                )}
+                {couponError && (
+                  <p className="mt-2 font-body text-xs text-error" role="alert">{couponError}</p>
+                )}
+              </div>
+
               <div className="flex justify-between font-body text-sm">
                 <span className="text-on-surface-variant">Subtotal</span>
                 <span className="text-on-surface">{formatPrice(totalPrice)}</span>
               </div>
+              {coupon && (
+                <div className="mt-2 flex justify-between font-body text-sm">
+                  <span className="text-on-surface-variant">Descuento ({coupon.code})</span>
+                  <span className="text-green-600">-{formatPrice(coupon.discount)}</span>
+                </div>
+              )}
               <div className="mt-2 flex justify-between font-body text-sm">
                 <span className="text-on-surface-variant">Envío</span>
                 <span className="text-on-surface">
@@ -580,7 +664,7 @@ export default function CheckoutPage() {
               <div className="mt-3 border-t border-outline-variant/50 pt-3 flex justify-between">
                 <span className="font-body text-base font-medium text-on-surface">Total</span>
                 <span className="font-heading text-xl font-medium text-primary">
-                  {formatPrice(totalPrice)}
+                  {formatPrice(discountedTotal)}
                 </span>
               </div>
             </div>

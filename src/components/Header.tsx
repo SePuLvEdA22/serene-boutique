@@ -24,6 +24,14 @@ export default function Header() {
   const { user, logout, wishlist } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  // Ajuste de estado durante el render (patrón recomendado): al cambiar de ruta,
+  // cierra el menú móvil sin setState síncrono dentro de un effect.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setMobileOpen(false);
+  }
+
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') setMobileOpen(false);
   }, []);
@@ -40,10 +48,6 @@ export default function Header() {
       document.body.style.overflow = '';
     };
   }, [mobileOpen, handleEscape]);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-30 border-b border-outline-variant/50 bg-surface/80 backdrop-blur-md">

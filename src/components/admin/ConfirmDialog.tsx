@@ -67,7 +67,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="rounded-lg bg-error px-4 py-2 font-body text-sm font-medium text-on-error transition-colors hover:bg-error/90 disabled:opacity-60"
+            className="btn-danger"
           >
             {loading ? 'Procesando...' : confirmLabel}
           </button>

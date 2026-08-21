@@ -179,6 +179,35 @@ export function buildPreference(input: PreferenceInput): MercadoPagoPreference {
   return preference;
 }
 
+// ─── Descuentos ───────────────────────────────────────────────────────
+
+/**
+ * Aplica un descuento (COP) a los items de una preferencia repartiéndolo desde
+ * el último item hacia atrás. MercadoPago no admite items negativos ni campos
+ * de descuento, así que se ajusta `unit_price` para que la suma de items sea
+ * exactamente `total - discount`. El `unit_price` resultante puede tener
+ * decimales (MercadoPago los acepta).
+ */
+export function applyDiscountToPreferenceItems(
+  items: PreferenceInput['items'],
+  discount: number
+): PreferenceInput['items'] {
+  if (discount <= 0) return items;
+  const result = [...items];
+  let remaining = discount;
+
+  for (let i = result.length - 1; i >= 0 && remaining > 0; i -= 1) {
+    const item = result[i];
+    const itemTotal = item.price * item.quantity;
+    const reduce = Math.min(remaining, itemTotal);
+    remaining -= reduce;
+    const unitPrice = Math.max(0, item.price - reduce / item.quantity);
+    result[i] = { ...item, price: Math.round(unitPrice * 100) / 100 };
+  }
+
+  return result;
+}
+
 // ─── Mensajes de prueba ──────────────────────────────────────────────
 
 export function getTestCardMessage(): string {

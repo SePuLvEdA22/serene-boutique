@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useSyncExternalStore, type ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -12,6 +12,61 @@ interface User {
 interface WishlistItem {
   productId: string;
   addedAt: string;
+}
+
+/**
+ * Wishlist persistida en localStorage y sincronizada con useSyncExternalStore:
+ * - getServerSnapshot devuelve [] (sin mismatch de hidratación).
+ * - las mutaciones pasan por `writeWishlist`, que notifica a los suscriptores.
+ * - el cache de la snapshot evita re-renders infinitos (referencia estable).
+ */
+const WISHLIST_KEY = 'switch-tech-wishlist';
+
+/** Referencia estable para la snapshot vacía (evita bucles de re-render). */
+const EMPTY_WISHLIST: WishlistItem[] = [];
+
+let wishlistCache: WishlistItem[] | null = null;
+const wishlistListeners = new Set<() => void>();
+
+function readWishlist(): WishlistItem[] {
+  if (typeof window === 'undefined') return EMPTY_WISHLIST;
+  try {
+    const raw = window.localStorage.getItem(WISHLIST_KEY);
+    wishlistCache = raw ? (JSON.parse(raw) as WishlistItem[]) : EMPTY_WISHLIST;
+  } catch {
+    wishlistCache = EMPTY_WISHLIST;
+  }
+  return wishlistCache;
+}
+
+function subscribeWishlist(callback: () => void): () => void {
+  wishlistListeners.add(callback);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === WISHLIST_KEY) {
+      wishlistCache = null;
+      callback();
+    }
+  };
+  window.addEventListener('storage', onStorage);
+  return () => {
+    wishlistListeners.delete(callback);
+    window.removeEventListener('storage', onStorage);
+  };
+}
+
+function getWishlistSnapshot(): WishlistItem[] {
+  if (wishlistCache === null) wishlistCache = readWishlist();
+  return wishlistCache;
+}
+
+function writeWishlist(next: WishlistItem[]): void {
+  wishlistCache = next;
+  try {
+    window.localStorage.setItem(WISHLIST_KEY, JSON.stringify(next));
+  } catch {
+    /* almacenamiento no disponible */
+  }
+  wishlistListeners.forEach((listener) => listener());
 }
 
 export interface LoginResult {
@@ -37,7 +92,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const wishlist = useSyncExternalStore(subscribeWishlist, getWishlistSnapshot, () => EMPTY_WISHLIST);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -48,19 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('switch-tech-wishlist');
-      if (stored) setWishlist(JSON.parse(stored));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('switch-tech-wishlist', JSON.stringify(wishlist));
-    } catch {}
-  }, [wishlist]);
 
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     try {
@@ -119,14 +161,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => {
-      if (prev.find((w) => w.productId === productId)) return prev;
-      return [...prev, { productId, addedAt: new Date().toISOString() }];
-    });
+    const current = getWishlistSnapshot();
+    if (current.some((w) => w.productId === productId)) return;
+    writeWishlist([...current, { productId, addedAt: new Date().toISOString() }]);
   }, []);
 
   const removeFromWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => prev.filter((w) => w.productId !== productId));
+    writeWishlist(getWishlistSnapshot().filter((w) => w.productId !== productId));
   }, []);
 
   const isInWishlist = useCallback((productId: string) => {

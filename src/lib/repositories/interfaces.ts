@@ -1,4 +1,6 @@
 import type { Product, Category, User, Order, OrderStatus, Contact, Subscriber } from '@/lib/models';
+import type { Settings } from '@/lib/models/settings';
+import type { Promo } from '@/lib/models/promo';
 
 export interface IProductRepository {
   findAll(): Product[];
@@ -33,10 +35,29 @@ export interface IOrderRepository {
 export interface IContactRepository {
   findAll(): Contact[];
   create(contact: Contact): void;
+  markRead(id: string, read: boolean): Contact | undefined;
+  delete(id: string): boolean;
 }
 
 export interface ISubscriberRepository {
   findAll(): Subscriber[];
   findByEmail(email: string): Subscriber | undefined;
   create(subscriber: Subscriber): void;
+  delete(id: string): boolean;
+}
+
+export interface ISettingsRepository {
+  get(): Settings;
+  update(data: Partial<Settings>): Settings;
+}
+
+export interface IPromoRepository {
+  findAll(): Promo[];
+  findById(id: string): Promo | undefined;
+  findByCode(code: string): Promo | undefined;
+  create(promo: Promo): void;
+  update(id: string, data: Partial<Promo>): Promo | undefined;
+  delete(id: string): boolean;
+  /** Registra un uso del cupón y devuelve el cupón actualizado. */
+  incrementUsage(id: string): Promo | undefined;
 }

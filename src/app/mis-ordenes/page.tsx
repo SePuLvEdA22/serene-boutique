@@ -39,23 +39,25 @@ const statusColors: Record<string, string> = {
 
 export default function MisOrdenesPage() {
   const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<Order[] | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
+    let cancelled = false;
     fetch('/api/orders')
       .then(res => res.json())
-      .then(data => setOrders(data.orders || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(data => {
+        if (!cancelled) setOrders(data.orders || []);
+      })
+      .catch(() => {
+        if (!cancelled) setOrders([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading]);
 
-  if (authLoading || loading) {
+  if (authLoading || orders === null) {
     return (
       <div className="container-store py-12 animate-fade-in">
         <h1 className="font-heading text-3xl font-medium text-on-surface">Mis órdenes</h1>

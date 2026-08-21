@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Raíz del repo: evita que Turbopack suba al directorio padre y encuentre
+  // un pnpm-workspace.yaml ajeno al proyecto (warning de workspace externo).
+  turbopack: {
+    root: process.cwd(),
+  },
+
   images: {
     formats: ["image/avif", "image/webp"],
   },

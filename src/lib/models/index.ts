@@ -33,3 +33,15 @@ export {
   SubscriberSchema,
   type Subscriber,
 } from './subscriber';
+
+export {
+  SettingsSchema,
+  DEFAULT_SETTINGS,
+  type Settings,
+} from './settings';
+
+export {
+  PromoSchema,
+  type Promo,
+  type PromoType,
+} from './promo';

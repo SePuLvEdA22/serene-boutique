@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatPrice, getPrice } from '@/lib/format-price';
 import { type Product } from '@/lib/models';
+import { CATEGORY_OPTIONS } from '@/lib/admin-constants';
 import { useToast } from '@/context/ToastContext';
+import PageHeader from '@/components/admin/PageHeader';
+import SearchInput from '@/components/admin/SearchInput';
+import FilterSelect from '@/components/admin/FilterSelect';
+import EmptyState from '@/components/admin/EmptyState';
+import Pagination from '@/components/admin/Pagination';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 
 const PAGE_SIZE = 10;
@@ -121,150 +127,124 @@ export default function AdminProductosPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-medium text-on-surface md:text-3xl">Productos</h1>
-        <Link href="/admin/productos/nuevo" className="btn-primary text-xs">
-          + Nuevo producto
-        </Link>
-      </div>
+      <PageHeader
+        title="Productos"
+        subtitle={`${products.length} ${products.length === 1 ? 'producto' : 'productos'} en el catálogo`}
+        actions={
+          <Link href="/admin/productos/nuevo" className="btn-primary text-xs">
+            + Nuevo producto
+          </Link>
+        }
+      />
 
       {/* Filtros */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          type="search"
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Buscar por nombre o ID..."
-          className="input-field sm:max-w-xs"
-          aria-label="Buscar productos"
-        />
-        <select value={category} onChange={e => { setCategory(e.target.value); setPage(1); }} className="input-field sm:w-44" aria-label="Filtrar por categoría">
-          <option value="all">Todas las categorías</option>
-          {Object.entries(categoryLabels).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-        <select value={stockFilter} onChange={e => { setStockFilter(e.target.value); setPage(1); }} className="input-field sm:w-40" aria-label="Filtrar por stock">
-          <option value="all">Todo el stock</option>
-          <option value="in">En stock (10+)</option>
-          <option value="low">Poco stock (1–9)</option>
-          <option value="out">Agotado (0)</option>
-        </select>
-        <p className="font-body text-sm text-on-surface-variant">
-          {filtered.length} {filtered.length === 1 ? 'producto' : 'productos'}
+        <SearchInput value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Buscar por nombre o ID..." label="Buscar productos" />
+        <FilterSelect value={category} onChange={v => { setCategory(v); setPage(1); }} label="Filtrar por categoría" options={[{ value: 'all', label: 'Todas las categorías' }, ...CATEGORY_OPTIONS]} />
+        <FilterSelect value={stockFilter} onChange={v => { setStockFilter(v); setPage(1); }} label="Filtrar por stock" className="sm:w-44" options={[
+          { value: 'all', label: 'Todo el stock' },
+          { value: 'in', label: 'En stock (10+)' },
+          { value: 'low', label: 'Poco stock (1–9)' },
+          { value: 'out', label: 'Agotado (0)' },
+        ]} />
+        <p className="font-body text-sm text-on-surface-variant sm:ml-auto">
+          {filtered.length} {filtered.length === 1 ? 'resultado' : 'resultados'}
         </p>
       </div>
 
       {paginated.length === 0 ? (
-        <div className="rounded-2xl bg-surface-container py-16 text-center">
-          <p className="font-body text-lg text-on-surface-variant">
-            {products.length === 0 ? 'No hay productos' : 'Sin resultados para los filtros'}
-          </p>
-        </div>
+        <EmptyState
+          title={products.length === 0 ? 'No hay productos' : 'Sin resultados para los filtros'}
+          description={products.length === 0 ? 'Crea tu primer producto para comenzar a vender.' : 'Ajusta la búsqueda o los filtros para ver más resultados.'}
+          action={<Link href="/admin/productos/nuevo" className="btn-primary text-xs">+ Nuevo producto</Link>}
+        />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-outline-variant/50 bg-surface">
-          <table className="w-full text-left font-body text-sm">
-            <thead>
-              <tr className="border-b border-outline-variant/50 text-xs uppercase tracking-wider text-on-surface-variant">
-                <th className="px-4 py-3 font-medium">Producto</th>
-                <th className="px-4 py-3 font-medium">Categoría</th>
-                <th className="px-4 py-3 font-medium">Precio</th>
-                <th className="px-4 py-3 font-medium">Stock</th>
-                <th className="px-4 py-3 font-medium">Visible</th>
-                <th className="px-4 py-3 font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((product) => {
-                const hasSale = product.salePrice !== undefined && product.salePrice < product.price;
-                return (
-                  <tr key={product.id} className="border-b border-outline-variant/30 transition-colors hover:bg-surface-container-low">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-on-surface">{product.name}</p>
-                      <p className="text-xs text-on-surface-variant">{product.id}</p>
-                    </td>
-                    <td className="px-4 py-3 capitalize text-on-surface-variant">
-                      {categoryLabels[product.category] || product.category}
-                    </td>
-                    <td className="px-4 py-3 text-on-surface">
-                      {hasSale && (
-                        <span className="mr-2 text-xs text-on-surface-variant line-through">
-                          {formatPrice(product.price)}
+        <div className="overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface shadow-soft">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-body text-sm">
+              <thead>
+                <tr className="bg-surface-container-low text-xs uppercase tracking-wider text-on-surface-variant">
+                  <th className="px-4 py-3 font-semibold">Producto</th>
+                  <th className="px-4 py-3 font-semibold">Categoría</th>
+                  <th className="px-4 py-3 font-semibold">Precio</th>
+                  <th className="px-4 py-3 font-semibold">Stock</th>
+                  <th className="px-4 py-3 font-semibold">Visible</th>
+                  <th className="px-4 py-3 text-right font-semibold">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((product) => {
+                  const hasSale = product.salePrice !== undefined && product.salePrice < product.price;
+                  const stock = product.stock ?? 0;
+                  return (
+                    <tr key={product.id} className="border-b border-outline-variant/30 transition-colors last:border-0 hover:bg-surface-container-low/60">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-on-surface">{product.name}</p>
+                        <p className="text-xs text-on-surface-variant">{product.id}</p>
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        {categoryLabels[product.category] || product.category}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface">
+                        {hasSale && (
+                          <span className="mr-2 text-xs text-on-surface-variant line-through">
+                            {formatPrice(product.price)}
+                          </span>
+                        )}
+                        <span className={hasSale ? 'font-medium text-error' : ''}>
+                          {formatPrice(getPrice(product))}
                         </span>
-                      )}
-                      <span className={hasSale ? 'text-error font-medium' : ''}>
-                        {formatPrice(getPrice(product))}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`chip ${
-                        (product.stock ?? 0) <= 0 ? 'bg-red-100 text-red-600' :
-                        (product.stock ?? 0) < 10 ? 'bg-yellow-100 text-yellow-600' :
-                        'bg-green-100 text-green-600'
-                      }`}>
-                        {(product.stock ?? 0) <= 0 ? 'Agotado' : product.stock}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {product.active !== false ? (
-                        <span className="chip bg-green-100 text-green-600">Sí</span>
-                      ) : (
-                        <span className="chip">No</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/admin/productos/${product.id}/edit`}
-                          className="rounded-lg px-2.5 py-1.5 text-xs text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-                        >
-                          Editar
-                        </Link>
-                        <button
-                          onClick={() => handleDuplicate(product)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-                          title="Duplicar producto"
-                        >
-                          Duplicar
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(product)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs text-error transition-colors hover:bg-error-container/50"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`chip ${
+                          stock <= 0 ? 'bg-red-100 text-red-600' :
+                          stock < 10 ? 'bg-yellow-100 text-yellow-600' :
+                          'bg-green-100 text-green-600'
+                        }`}>
+                          {stock <= 0 ? 'Agotado' : stock}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {product.active !== false ? (
+                          <span className="chip bg-green-100 text-green-600">Sí</span>
+                        ) : (
+                          <span className="chip bg-surface-container-high text-on-surface-variant">No</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/admin/productos/${product.id}/edit`}
+                            className="btn-ghost text-xs"
+                          >
+                            Editar
+                          </Link>
+                          <button
+                            onClick={() => handleDuplicate(product)}
+                            className="btn-ghost text-xs"
+                            title="Duplicar producto"
+                          >
+                            Duplicar
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(product)}
+                            className="btn-ghost text-xs text-error hover:text-error"
+                            title="Eliminar producto"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Paginación */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage(currentPage - 1)}
-            disabled={currentPage <= 1}
-            className="rounded-lg border border-outline-variant px-3 py-1.5 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
-          >
-            Anterior
-          </button>
-          <span className="px-3 font-body text-sm text-on-surface-variant">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-            className="rounded-lg border border-outline-variant px-3 py-1.5 font-body text-sm text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
-          >
-            Siguiente
-          </button>
-        </div>
-      )}
+      <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
 
       <ConfirmDialog
         open={confirmDelete !== null}

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { useToast } from '@/context/ToastContext';
 import ProductForm, { type ProductFormData } from '@/components/admin/ProductForm';
+import PageHeader from '@/components/admin/PageHeader';
 import { type Product } from '@/lib/models';
 
 export default function EditarProductoPage() {
@@ -66,19 +66,12 @@ export default function EditarProductoPage() {
 
   return (
     <div className="animate-fade-in max-w-2xl">
-      <div className="mb-6">
-        <Link
-          href="/admin/productos"
-          className="mb-2 inline-flex items-center gap-1 font-body text-sm text-on-surface-variant transition-colors hover:text-primary"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Volver a productos
-        </Link>
-        <h1 className="font-heading text-2xl font-medium text-on-surface md:text-3xl">Editar producto</h1>
-        <p className="font-body text-xs text-on-surface-variant">ID: {product.id}</p>
-      </div>
+      <PageHeader
+        title="Editar producto"
+        subtitle={`ID: ${product.id}`}
+        backHref="/admin/productos"
+        backLabel="Volver a productos"
+      />
 
       <ProductForm
         initial={product}

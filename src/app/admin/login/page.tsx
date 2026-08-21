@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             <div>
-              <label htmlFor="email" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">
+              <label htmlFor="email" className="admin-label mb-2">
                 Email
               </label>
               <input
@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
               {errors.email && <p className="mt-1 font-body text-xs text-error" role="alert">{errors.email}</p>}
             </div>
             <div>
-              <label htmlFor="password" className="mb-2 block font-body text-xs font-medium uppercase tracking-wider text-on-surface-variant">
+              <label htmlFor="password" className="admin-label mb-2">
                 Contraseña
               </label>
               <input

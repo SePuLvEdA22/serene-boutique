@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getOrderRepo } from '@/lib/repositories';
-import { buildPreference, type PaymentMethodType } from '@/lib/mercadopago';
+import { getOrderRepo, getPromoRepo } from '@/lib/repositories';
+import { buildPreference, applyDiscountToPreferenceItems, type PaymentMethodType } from '@/lib/mercadopago';
 import { validateOrderItems } from '@/lib/order-items';
+import { validateCoupon } from '@/lib/promos';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
 
@@ -44,6 +45,7 @@ const preferenceSchema = z.object({
       notes: z.string().optional(),
     })
     .optional(),
+  couponCode: z.string().min(3).max(30).optional(),
 });
 
 export async function POST(request: Request) {
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { items, paymentMethod, payer, shipping } = parsed.data;
+    const { items, paymentMethod, payer, shipping, couponCode } = parsed.data;
 
     // Seguridad: validar items contra el catálogo. Los precios y nombres del
     // cliente NO se aceptan tal cual — se recalculan desde la base de productos
@@ -92,6 +94,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // Cupón: validación autoritativa en el servidor. El descuento se aplica al
+    // total y se registra en la orden; el uso del cupón se incrementa.
+    let discount = 0;
+    let promoId: string | undefined;
+    if (couponCode) {
+      const coupon = validateCoupon(getPromoRepo().findByCode(couponCode), validated.total);
+      if (!coupon.valid) {
+        return NextResponse.json(
+          { error: coupon.reason || 'Cupón inválido' },
+          { status: 400 }
+        );
+      }
+      discount = coupon.discount ?? 0;
+      promoId = coupon.promo?.id;
+      if (promoId) getPromoRepo().incrementUsage(promoId);
+    }
+
+    const orderTotal = validated.total - discount;
+
     // Crear orden en estado "pending" con información de pago
     const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
@@ -100,14 +121,18 @@ export async function POST(request: Request) {
     const origin =
       request.headers.get('origin') || new URL(request.url).origin || 'https://switchandtech.com';
 
-    // Construir preferencia usando la librería (items canónicos del catálogo)
+    // Construir preferencia usando la librería (items canónicos del catálogo).
+    // Si hay cupón, ajustamos unit_price para que MercadoPago cobre el total correcto.
     const preference = buildPreference({
-      items: validated.items.map((item) => ({
-        id: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-      })),
+      items: applyDiscountToPreferenceItems(
+        validated.items.map((item) => ({
+          id: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        discount
+      ),
       paymentMethod: paymentMethod as PaymentMethodType,
       orderId,
       payer: payer
@@ -150,7 +175,8 @@ export async function POST(request: Request) {
             zip: '',
           },
       // Total recalculado en el servidor con precios del catálogo
-      total: validated.total,
+      total: orderTotal,
+      ...(discount > 0 ? { discount, promoId } : {}),
       paymentMethod,
       payerIdentification: payer?.identification,
       status: 'pending' as const,
@@ -167,6 +193,7 @@ export async function POST(request: Request) {
           message:
             'Modo de prueba — Configura MP_ACCESS_TOKEN en .env para activar pagos reales.',
           orderId,
+          discount,
           preference: {
             id: `TEST_${Date.now()}`,
             init_point: `${origin}/orden?status=success&id=${orderId}`,
@@ -214,6 +241,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         orderId,
+        discount,
         preference: {
           id: data.id,
           init_point: data.init_point,

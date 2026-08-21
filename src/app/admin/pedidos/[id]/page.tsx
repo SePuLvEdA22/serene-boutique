@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { formatPrice } from '@/lib/format-price';
+import { STATUS_LABELS, STATUS_FLOW } from '@/lib/admin-constants';
+import PageHeader from '@/components/admin/PageHeader';
 
 interface OrderDetail {
   id: string;
@@ -14,21 +15,7 @@ interface OrderDetail {
   createdAt: string;
 }
 
-const statusLabels: Record<string, string> = {
-  confirmed: 'Confirmado',
-  processing: 'Procesando',
-  shipped: 'Enviado',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
-};
-
-const statusOptions = [
-  { value: 'confirmed', label: 'Confirmado' },
-  { value: 'processing', label: 'Procesando' },
-  { value: 'shipped', label: 'Enviado' },
-  { value: 'delivered', label: 'Entregado' },
-  { value: 'cancelled', label: 'Cancelado' },
-];
+const statusOptions = STATUS_FLOW.map((value) => ({ value, label: STATUS_LABELS[value] }));
 
 export default function AdminPedidoDetallePage() {
   const router = useRouter();
@@ -80,26 +67,18 @@ export default function AdminPedidoDetallePage() {
 
   return (
     <div className="animate-fade-in max-w-3xl">
-      <div className="mb-6">
-        <Link href="/admin/pedidos" className="mb-2 inline-flex items-center gap-1 font-body text-sm text-on-surface-variant transition-colors hover:text-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Volver a pedidos
-        </Link>
-        <h1 className="font-heading text-2xl font-medium text-on-surface md:text-3xl">Pedido {order.id}</h1>
-      </div>
+      <PageHeader title={`Pedido ${order.id}`} backHref="/admin/pedidos" backLabel="Volver a pedidos" />
 
       <div className="grid gap-6">
-        <div className="rounded-xl border border-outline-variant/50 bg-surface p-6">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="admin-card admin-card-pad">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="font-heading text-lg font-medium text-on-surface">Estado</h2>
             <div className="flex items-center gap-2">
               <select
                 value={order.status}
                 onChange={(e) => updateStatus(e.target.value)}
                 disabled={saving}
-                className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 font-body text-sm text-on-surface"
+                className="input-field w-44 py-2 text-sm"
               >
                 {statusOptions.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -113,7 +92,7 @@ export default function AdminPedidoDetallePage() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-outline-variant/50 bg-surface p-6">
+        <div className="admin-card admin-card-pad">
           <h2 className="mb-4 font-heading text-lg font-medium text-on-surface">Productos</h2>
           <div className="flex flex-col gap-3">
             {order.items.map((item, i) => (
@@ -134,32 +113,32 @@ export default function AdminPedidoDetallePage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-outline-variant/50 bg-surface p-6">
+        <div className="admin-card admin-card-pad">
           <h2 className="mb-4 font-heading text-lg font-medium text-on-surface">Información de envío</h2>
           <div className="grid gap-3 font-body text-sm sm:grid-cols-2">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Nombre</p>
+              <p className="admin-label mb-1">Nombre</p>
               <p className="text-on-surface">{order.shipping.name}</p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Email</p>
+              <p className="admin-label mb-1">Email</p>
               <p className="text-on-surface">{order.shipping.email}</p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Teléfono</p>
+              <p className="admin-label mb-1">Teléfono</p>
               <p className="text-on-surface">{order.shipping.phone}</p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Dirección</p>
+              <p className="admin-label mb-1">Dirección</p>
               <p className="text-on-surface">{order.shipping.address}</p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Ciudad / Estado / CP</p>
+              <p className="admin-label mb-1">Ciudad / Estado / CP</p>
               <p className="text-on-surface">{order.shipping.city}, {order.shipping.state} — {order.shipping.zip}</p>
             </div>
             {order.shipping.notes && (
               <div className="sm:col-span-2">
-                <p className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">Notas</p>
+                <p className="admin-label mb-1">Notas</p>
                 <p className="text-on-surface">{order.shipping.notes}</p>
               </div>
             )}
