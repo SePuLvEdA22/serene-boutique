@@ -1,72 +1,12 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
 interface User {
   id: string;
   name: string;
   email: string;
   isAdmin?: boolean;
-}
-
-interface WishlistItem {
-  productId: string;
-  addedAt: string;
-}
-
-/**
- * Wishlist persistida en localStorage y sincronizada con useSyncExternalStore:
- * - getServerSnapshot devuelve [] (sin mismatch de hidratación).
- * - las mutaciones pasan por `writeWishlist`, que notifica a los suscriptores.
- * - el cache de la snapshot evita re-renders infinitos (referencia estable).
- */
-const WISHLIST_KEY = 'switch-tech-wishlist';
-
-/** Referencia estable para la snapshot vacía (evita bucles de re-render). */
-const EMPTY_WISHLIST: WishlistItem[] = [];
-
-let wishlistCache: WishlistItem[] | null = null;
-const wishlistListeners = new Set<() => void>();
-
-function readWishlist(): WishlistItem[] {
-  if (typeof window === 'undefined') return EMPTY_WISHLIST;
-  try {
-    const raw = window.localStorage.getItem(WISHLIST_KEY);
-    wishlistCache = raw ? (JSON.parse(raw) as WishlistItem[]) : EMPTY_WISHLIST;
-  } catch {
-    wishlistCache = EMPTY_WISHLIST;
-  }
-  return wishlistCache;
-}
-
-function subscribeWishlist(callback: () => void): () => void {
-  wishlistListeners.add(callback);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === WISHLIST_KEY) {
-      wishlistCache = null;
-      callback();
-    }
-  };
-  window.addEventListener('storage', onStorage);
-  return () => {
-    wishlistListeners.delete(callback);
-    window.removeEventListener('storage', onStorage);
-  };
-}
-
-function getWishlistSnapshot(): WishlistItem[] {
-  if (wishlistCache === null) wishlistCache = readWishlist();
-  return wishlistCache;
-}
-
-function writeWishlist(next: WishlistItem[]): void {
-  wishlistCache = next;
-  try {
-    window.localStorage.setItem(WISHLIST_KEY, JSON.stringify(next));
-  } catch {
-    /* almacenamiento no disponible */
-  }
-  wishlistListeners.forEach((listener) => listener());
 }
 
 export interface LoginResult {
@@ -81,10 +21,6 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, consent: boolean) => Promise<string | null>;
   deleteAccount: (password: string) => Promise<string | null>;
   logout: () => Promise<void>;
-  wishlist: WishlistItem[];
-  addToWishlist: (productId: string) => void;
-  removeFromWishlist: (productId: string) => void;
-  isInWishlist: (productId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,7 +28,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const wishlist = useSyncExternalStore(subscribeWishlist, getWishlistSnapshot, () => EMPTY_WISHLIST);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -160,24 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new CustomEvent('cart:clear'));
   }, []);
 
-  const addToWishlist = useCallback((productId: string) => {
-    const current = getWishlistSnapshot();
-    if (current.some((w) => w.productId === productId)) return;
-    writeWishlist([...current, { productId, addedAt: new Date().toISOString() }]);
-  }, []);
-
-  const removeFromWishlist = useCallback((productId: string) => {
-    writeWishlist(getWishlistSnapshot().filter((w) => w.productId !== productId));
-  }, []);
-
-  const isInWishlist = useCallback((productId: string) => {
-    return wishlist.some((w) => w.productId === productId);
-  }, [wishlist]);
-
   return (
-    <AuthContext.Provider
-      value={{ user, loading, login, register, deleteAccount, logout, wishlist, addToWishlist, removeFromWishlist, isInWishlist }}
-    >
+    <AuthContext.Provider value={{ user, loading, login, register, deleteAccount, logout }}>
       {children}
     </AuthContext.Provider>
   );

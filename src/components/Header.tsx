@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/lib/use-wishlist';
 import { useTheme } from '@/context/ThemeContext';
 import CartIcon from './CartIcon';
 import UserDropdown from './UserDropdown';
@@ -21,7 +22,8 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
-  const { user, logout, wishlist } = useAuth();
+  const { user, logout } = useAuth();
+  const { wishlist } = useWishlist();
   const { theme, toggleTheme } = useTheme();
 
   // Ajuste de estado durante el render (patrón recomendado): al cambiar de ruta,

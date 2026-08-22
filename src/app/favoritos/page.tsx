@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/lib/use-wishlist';
 import PriceTag from '@/components/PriceTag';
 import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
 import Spinner from '@/components/Spinner';
 
 export default function FavoritosPage() {
-  const { wishlist, removeFromWishlist, user } = useAuth();
+  const { user } = useAuth();
+  const { wishlist, removeFromWishlist } = useWishlist();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
