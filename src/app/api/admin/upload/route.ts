@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
+import { put } from '@vercel/blob';
 import { requireAdmin } from '@/lib/admin';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'images', 'products');
+const LOCAL_UPLOAD_DIR = path.join(process.cwd(), 'public', 'images', 'products');
+const BLOB_PATH_PREFIX = 'products';
 const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']);
 const EXT_BY_TYPE: Record<string, string> = {
@@ -19,12 +21,28 @@ const EXT_BY_TYPE: Record<string, string> = {
 };
 
 /**
- * Sube una imagen de producto a `public/images/products/` y devuelve su URL.
+ * Sube una imagen de producto y devuelve su URL pública.
  *
- * ⚠️ Limitación de plataforma: en Vercel el sistema de archivos es efímero, por
- * lo que las subidas no persisten entre deploys (igual que lowdb). Para
- * producción real conviene almacenamiento externo (Vercel Blob, S3, etc.).
+ * - Con `BLOB_READ_WRITE_TOKEN`: persiste en Vercel Blob (CDN incluida),
+ *   imprescindible en producción porque el filesystem de Vercel es efímero.
+ * - Sin token (desarrollo local): escribe en `public/images/products/`
+ *   para no exigir credenciales fuera del deploy.
  */
+async function saveImage(name: string, bytes: Buffer, contentType: string): Promise<string> {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`${BLOB_PATH_PREFIX}/${name}`, bytes, {
+      access: 'public',
+      contentType,
+      addRandomSuffix: false,
+    });
+    return blob.url;
+  }
+
+  mkdirSync(LOCAL_UPLOAD_DIR, { recursive: true });
+  writeFileSync(path.join(LOCAL_UPLOAD_DIR, name), bytes);
+  return `/images/products/${name}`;
+}
+
 export async function POST(request: Request) {
   const user = await requireAdmin();
   if (!user) {
@@ -60,11 +78,9 @@ export async function POST(request: Request) {
 
     const bytes = Buffer.from(await file.arrayBuffer());
     const name = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${EXT_BY_TYPE[file.type]}`;
+    const url = await saveImage(name, bytes, file.type);
 
-    mkdirSync(UPLOAD_DIR, { recursive: true });
-    writeFileSync(path.join(UPLOAD_DIR, name), bytes);
-
-    return NextResponse.json({ url: `/images/products/${name}` }, { status: 201 });
+    return NextResponse.json({ url }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Error al subir la imagen' }, { status: 500 });
   }
