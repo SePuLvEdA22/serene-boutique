@@ -77,11 +77,23 @@ describe('checkRateLimit', () => {
 });
 
 describe('rateLimitKey', () => {
-  it('debería_usar_la_primera_ip_de_x-forwarded-for', () => {
+  it('debería_priorizar_x-real-ip_sobre_x-forwarded-for', () => {
+    const request = new Request('http://localhost:3000/api/x', {
+      headers: {
+        'x-real-ip': '198.51.100.9',
+        'x-forwarded-for': '203.0.113.5, 70.41.3.18',
+      },
+    });
+    expect(rateLimitKey(request)).toContain('198.51.100.9');
+  });
+
+  it('debería_usar_el_último_salto_de_x-forwarded-for', () => {
+    // Los primeros saltos pueden ser spoofeados por el cliente; el último es
+    // el añadido por el proxy de confianza.
     const request = new Request('http://localhost:3000/api/x', {
       headers: { 'x-forwarded-for': '203.0.113.5, 70.41.3.18' },
     });
-    expect(rateLimitKey(request)).toContain('203.0.113.5');
+    expect(rateLimitKey(request)).toContain('70.41.3.18');
   });
 
   it('debería_incluir_la_ruta_en_la_clave', () => {
@@ -100,42 +112,72 @@ describe('UpstashRateLimitStore', () => {
     vi.unstubAllGlobals();
   });
 
-  it('debería_escribir_y_leer_entradas_via_REST', async () => {
-    const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
-    const entry = { count: 2, resetAt: Date.now() + 60_000 };
+  function stubPipeline(replies: Array<{ result?: unknown; error?: string }>) {
+    return stubFetch(async (fetchUrl: string) => {
+      if (!String(fetchUrl).includes('/pipeline')) throw new Error(`URL inesperada: ${fetchUrl}`);
+      return new Response(JSON.stringify(replies), { status: 200 });
+    });
+  }
 
-    const fetchMock = stubFetch((url: string) => {
-      if (url.startsWith('https://upstash.example.com/get/')) {
-        return jsonResponse(JSON.stringify(entry));
+  it('debería_incrementar_de_forma_atómica_via_pipeline', async () => {
+    const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
+    const fetchMock = stubPipeline([{ result: 2 }, { result: 'OK' }, { result: 55_000 }]);
+
+    const result = await store.increment('clave', 60_000);
+
+    expect(result).toEqual({ count: 2, resetAt: expect.any(Number) });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://upstash.example.com/pipeline',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+      })
+    );
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as string[][];
+    expect(body[0]).toEqual(['INCR', 'clave']);
+    expect(body[1]).toEqual(['EXPIRE', 'clave', '60', 'NX']);
+    expect(body[2]).toEqual(['PTTL', 'clave']);
+  });
+
+  it('debería_derivar_resetAt_del_pttl_restante', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
+    stubPipeline([{ result: 1 }, { result: 'OK' }, { result: 30_000 }]);
+
+    const result = await store.increment('clave', 60_000);
+
+    expect(result.resetAt).toBe(Date.now() + 30_000);
+  });
+
+  it('debería_rearmar_ttl_cuando_pttl_indica_clave_sin_expiracion', async () => {
+    const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
+    const fetchMock = stubFetch((fetchUrl: string) => {
+      if (String(fetchUrl).includes('/pipeline')) {
+        return new Response(JSON.stringify([{ result: 3 }, { result: 0 }, { result: -1 }]), { status: 200 });
       }
-      return jsonResponse('OK');
+      if (String(fetchUrl).includes('/expire/')) {
+        return jsonResponse('OK');
+      }
+      throw new Error(`URL inesperada: ${fetchUrl}`);
     });
 
-    await store.set('clave', entry, 60_000);
-    const stored = await store.get('clave');
+    const result = await store.increment('clave', 60_000);
 
-    expect(stored).toEqual(entry);
-    const setCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/set/'));
-    expect(setCall).toBeTruthy();
-    expect(String(setCall?.[0])).toContain('EX=60');
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/get/'),
-      expect.objectContaining({ headers: { Authorization: 'Bearer token' } })
+    expect(result.count).toBe(3);
+    expect(String(fetchMock.mock.calls.find(([u]) => String(u).includes('/expire/'))?.[0])).toContain(
+      '/expire/clave/60'
     );
   });
 
-  it('debería_devolver_undefined_cuando_no_hay_resultado', async () => {
+  it('debería_abrir_el_paso_si_upstash_responde_error_http (fail-open)', async () => {
     const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
-    stubFetch(() => jsonResponse(null));
+    stubFetch(() => new Response('', { status: 401 }));
 
-    await expect(store.get('clave')).resolves.toBeUndefined();
-  });
-
-  it('debería_devolver_undefined_con_json_malformado', async () => {
-    const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
-    stubFetch(() => jsonResponse('{no-json'));
-
-    await expect(store.get('clave')).resolves.toBeUndefined();
+    await expect(store.increment('clave', 60_000)).resolves.toEqual({
+      count: 0,
+      resetAt: expect.any(Number),
+    });
   });
 
   it('debería_abrir_el_paso_si_falla_la_red (fail-open)', async () => {
@@ -144,8 +186,20 @@ describe('UpstashRateLimitStore', () => {
       throw new Error('network down');
     });
 
-    await expect(store.get('clave')).resolves.toBeUndefined();
-    await expect(store.set('clave', { count: 1, resetAt: Date.now() + 60_000 }, 60_000)).resolves.toBeUndefined();
+    await expect(store.increment('clave', 60_000)).resolves.toEqual({
+      count: 0,
+      resetAt: expect.any(Number),
+    });
+  });
+
+  it('debería_abrir_el_paso_con_respuesta_invalida (fail-open)', async () => {
+    const store = new UpstashRateLimitStore('https://upstash.example.com', 'token');
+    stubPipeline([{ result: null }, { error: 'ERR' }, {}]);
+
+    await expect(store.increment('clave', 60_000)).resolves.toEqual({
+      count: 0,
+      resetAt: expect.any(Number),
+    });
   });
 });
 

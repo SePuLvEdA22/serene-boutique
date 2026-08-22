@@ -5,6 +5,9 @@
  * - Si se configuran `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`,
  *   usa Upstash Redis (REST) para compartir el estado entre instancias
  *   serverless (requisito para que el límite funcione en Vercel).
+ * - El incremento es atómico en ambos almacenes (pipeline INCR/EXPIRE en
+ *   Upstash; evento del event-loop en memoria), así que la concurrencia no
+ *   subestima el contador.
  * - Incluye un presupuesto global por IP para evitar el bypass por
  *   dispersión entre rutas (rotar de endpoint para eludir cada límite).
  */
@@ -20,14 +23,22 @@ export interface RateLimitResult {
   resetAt: number;
 }
 
+interface IncrementResult {
+  count: number;
+  resetAt: number;
+}
+
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
 
 interface RateLimitStore {
-  get(key: string): Promise<RateLimitEntry | undefined>;
-  set(key: string, entry: RateLimitEntry, ttlMs: number): Promise<void>;
+  /**
+   * Incrementa el contador de forma atómica y devuelve el estado resultante.
+   * La ventana es fija: arranca en la primera petición y no se extiende.
+   */
+  increment(key: string, windowMs: number): Promise<IncrementResult>;
 }
 
 // ─── Almacén en memoria ──────────────────────────────────────────────
@@ -36,19 +47,25 @@ class MemoryRateLimitStore implements RateLimitStore {
   private readonly store = new Map<string, RateLimitEntry>();
   private static readonly MAX_ENTRIES = 10_000;
 
-  async get(key: string): Promise<RateLimitEntry | undefined> {
-    return this.store.get(key);
-  }
+  async increment(key: string, windowMs: number): Promise<IncrementResult> {
+    const now = Date.now();
 
-  async set(key: string, entry: RateLimitEntry): Promise<void> {
     // Poda oportunista: evita crecimiento ilimitado con claves únicas (ip:ruta).
     if (this.store.size >= MemoryRateLimitStore.MAX_ENTRIES) {
-      const now = Date.now();
       for (const [k, e] of this.store) {
         if (now > e.resetAt) this.store.delete(k);
       }
     }
-    this.store.set(key, entry);
+
+    const entry = this.store.get(key);
+    if (!entry || now > entry.resetAt) {
+      const resetAt = now + windowMs;
+      this.store.set(key, { count: 1, resetAt });
+      return { count: 1, resetAt };
+    }
+
+    entry.count += 1;
+    return { count: entry.count, resetAt: entry.resetAt };
   }
 
   clear(): void {
@@ -58,14 +75,18 @@ class MemoryRateLimitStore implements RateLimitStore {
 
 // ─── Almacén distribuido (Upstash Redis REST) ────────────────────────
 
+interface PipelineReply {
+  result?: unknown;
+  error?: string;
+}
+
 /**
  * Almacén distribuido sobre la API REST de Upstash Redis.
  *
- * ⚠️ Limitación conocida: get→incrementar→set NO es atómico; bajo mucha
- * concurrencia el contador puede subestimar y dejar pasar algo más del
- * límite configurado. Aceptable como respaldo (la alternativa es un
- * script Lua atómico); los fallos de red abren el paso (fail-open) para
- * no bloquear tráfico legítimo.
+ * Usa un único POST a `/pipeline` con [INCR, EXPIRE NX, PTTL]: el contador se
+ * incrementa atómicamente y el TTL solo se fija en la primera petición de la
+ * ventana (ventana fija). Si Upstash falla o responde mal, abre el paso
+ * (fail-open) para no bloquear tráfico legítimo, dejando log del incidente.
  */
 export class UpstashRateLimitStore implements RateLimitStore {
   private readonly url: string;
@@ -76,48 +97,77 @@ export class UpstashRateLimitStore implements RateLimitStore {
     this.token = token;
   }
 
-  async get(key: string): Promise<RateLimitEntry | undefined> {
+  async increment(key: string, windowMs: number): Promise<IncrementResult> {
+    const ttlSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+    const commands = [
+      ['INCR', key],
+      ['EXPIRE', key, String(ttlSeconds), 'NX'],
+      ['PTTL', key],
+    ];
+
     try {
-      const res = await fetch(`${this.url}/get/${encodeURIComponent(key)}`, {
-        headers: { Authorization: `Bearer ${this.token}` },
+      const res = await fetch(`${this.url}/pipeline`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(commands),
         cache: 'no-store',
       });
+
       if (!res.ok) {
-        // Fail-open, pero con aviso: un 401/429/5xx de Upstash (p. ej. token
-        // mal configurado) desactivaría el rate limiting en silencio.
+        // Un 401/429/5xx de Upstash (p. ej. token mal configurado) desactivaría
+        // el rate limiting en silencio si no lo registramos.
         console.error(
-          `[rate-limit] Upstash respondió ${res.status} en GET de '${key}' — rate limiting desactivado para esta clave`
+          `[rate-limit] Upstash respondió ${res.status} en pipeline de '${key}' — fail-open`
         );
-        return undefined;
+        return this.openResult(windowMs);
       }
-      const data = (await res.json()) as { result?: string };
-      if (!data.result) return undefined;
-      return JSON.parse(data.result) as RateLimitEntry;
+
+      const replies = (await res.json()) as PipelineReply[];
+      const incr = replies[0]?.result;
+      const pttl = replies[2]?.result;
+
+      if (typeof incr !== 'number') {
+        console.error(`[rate-limit] Respuesta INCR inválida para '${key}' — fail-open`);
+        return this.openResult(windowMs);
+      }
+      if (replies.some((r) => r.error)) {
+        console.error(`[rate-limit] Error parcial de Upstash para '${key}':`, replies.map((r) => r.error));
+      }
+
+      // PTTL > 0: ventana ya anclada. PTTL -1: la clave quedó sin TTL (carrera
+      // con expiración); reparamos best-effort con un EXPIRE adicional.
+      let resetAt: number;
+      if (typeof pttl === 'number' && pttl > 0) {
+        resetAt = Date.now() + pttl;
+      } else {
+        resetAt = Date.now() + windowMs;
+        void this.rearmExpiry(key, ttlSeconds);
+      }
+
+      return { count: incr, resetAt };
     } catch (err) {
-      console.error('[rate-limit] Error leyendo de Upstash:', err);
-      return undefined;
+      console.error('[rate-limit] Error contactando Upstash — fail-open:', err);
+      return this.openResult(windowMs);
     }
   }
 
-  async set(key: string, entry: RateLimitEntry, ttlMs: number): Promise<void> {
+  private openResult(windowMs: number): IncrementResult {
+    return { count: 0, resetAt: Date.now() + windowMs };
+  }
+
+  /** Best-effort: re-ancla el TTL de una clave que quedó sin expiración. */
+  private async rearmExpiry(key: string, ttlSeconds: number): Promise<void> {
     try {
-      const ttlSeconds = Math.max(1, Math.ceil(ttlMs / 1000));
-      const value = encodeURIComponent(JSON.stringify(entry));
-      const res = await fetch(
-        `${this.url}/set/${encodeURIComponent(key)}/${value}?EX=${ttlSeconds}`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${this.token}` },
-          cache: 'no-store',
-        }
-      );
-      if (!res.ok) {
-        console.error(
-          `[rate-limit] Upstash respondió ${res.status} en SET de '${key}' — el contador no se guardó`
-        );
-      }
-    } catch (err) {
-      console.error('[rate-limit] Error escribiendo en Upstash:', err);
+      await fetch(`${this.url}/expire/${encodeURIComponent(key)}/${ttlSeconds}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.token}` },
+        cache: 'no-store',
+      });
+    } catch {
+      // Sin acción: el siguiente incremento volvería a intentarlo vía PTTL -1.
     }
   }
 }
@@ -147,9 +197,25 @@ export function resetRateLimitStore(): void {
 
 // ─── Funciones públicas ──────────────────────────────────────────────
 
+/**
+ * Resuelve la IP del cliente priorizando cabeceras fijadas por la plataforma:
+ * - `x-real-ip` la establece el proxy de confianza (Vercel/nginx) y el cliente
+ *   no puede spoofearla.
+ * - En `x-forwarded-for`, los primeros saltos SÍ pueden ser spoofeados por el
+ *   cliente; detrás de un único proxy confiable, el último salto es el que él
+ *   añadió y por tanto el verificable.
+ */
 function clientIp(request: Request): string {
+  const realIp = request.headers.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+
   const forwarded = request.headers.get('x-forwarded-for');
-  return forwarded?.split(',')[0]?.trim() || 'anonymous';
+  if (forwarded) {
+    const hops = forwarded.split(',').map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
+
+  return 'anonymous';
 }
 
 /** Clave por IP + ruta: limita cada endpoint de forma independiente. */
@@ -178,21 +244,11 @@ export async function checkRateLimit(
   key: string,
   options: RateLimitOptions = { maxRequests: 10, windowMs: 60_000 }
 ): Promise<RateLimitResult> {
-  const now = Date.now();
-  const entry = await store.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    const resetAt = now + options.windowMs;
-    await store.set(key, { count: 1, resetAt }, options.windowMs);
-    return { allowed: true, remaining: options.maxRequests - 1, resetAt };
-  }
-
-  const count = entry.count + 1;
-  await store.set(key, { count, resetAt: entry.resetAt }, options.windowMs);
+  const { count, resetAt } = await store.increment(key, options.windowMs);
 
   if (count > options.maxRequests) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+    return { allowed: false, remaining: 0, resetAt };
   }
 
-  return { allowed: true, remaining: options.maxRequests - count, resetAt: entry.resetAt };
+  return { allowed: true, remaining: options.maxRequests - count, resetAt };
 }
