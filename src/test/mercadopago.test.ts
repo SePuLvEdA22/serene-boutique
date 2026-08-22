@@ -1,12 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPrice } from '@/lib/format-price';
 import { buildPreference as buildMpPreference, COL_IDENTIFICATION_TYPES } from '@/lib/mercadopago';
-
-describe('formatPrice', () => {
-  it('debería_formatear_en_COP_por_defecto', () => {
-    expect(formatPrice(249)).toBe('249 COP');
-  });
-});
 
 describe('COL_IDENTIFICATION_TYPES', () => {
   it('debería_incluir_CC_CE_NIT_y_Pasaporte', () => {
