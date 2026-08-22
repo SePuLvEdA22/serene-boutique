@@ -10,8 +10,7 @@
  * exijan conservar un registro mínimo (p. ej. monto y fecha de la compra) sin
  * datos personales; si aplica, anonimizar en lugar de borrar el registro.
  */
-import { db } from './db';
-import { getOrderRepo, getUserRepo } from './repositories';
+import { getOrderRepo, getSubscriberRepo, getUserRepo } from './repositories';
 
 export async function deleteUserAccount(userId: string): Promise<void> {
   const user = await getUserRepo().findById(userId);
@@ -24,8 +23,10 @@ export async function deleteUserAccount(userId: string): Promise<void> {
   }
 
   // Baja automática del newsletter (mismo email)
-  const subscribers = await db.subscribers.get();
-  await db.subscribers.set(subscribers.filter((s) => s.email !== user.email));
+  const subscriber = await getSubscriberRepo().findByEmail(user.email);
+  if (subscriber) {
+    await getSubscriberRepo().delete(subscriber.id);
+  }
 
   // Eliminar el usuario (y con él sus refresh tokens y contador de intentos)
   await getUserRepo().delete(userId);

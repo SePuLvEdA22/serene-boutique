@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { newsletterSchema } from '@/lib/validation';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
-import { db } from '@/lib/db';
+import { getSubscriberRepo } from '@/lib/repositories';
 
 export async function POST(request: Request) {
   const blocked = csrfBlocked(request);
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const { email, consent } = parsed.data;
-    const existing = (await db.subscribers.get()).find(s => s.email === email);
+    const existing = await getSubscriberRepo().findByEmail(email);
 
     if (existing) {
       return NextResponse.json(
@@ -41,15 +41,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const subscriber = {
+    // Ley 1581: registrar el consentimiento explícito al newsletter.
+    await getSubscriberRepo().create({
       id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       email,
       subscribedAt: new Date().toISOString(),
-      // Ley 1581: registrar el consentimiento explícito al newsletter.
       consentAt: consent ? new Date().toISOString() : undefined,
-    };
-
-    db.subscribers.set([...(await db.subscribers.get()), subscriber]);
+    });
     console.log('[Newsletter] Nuevo suscriptor:', email);
 
     return NextResponse.json(

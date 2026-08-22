@@ -2,11 +2,14 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { db } from './db';
 import { getUserRepo } from './repositories';
-import { verifyAdminToken, signAdminToken, ACCESS_TOKEN_TTL_SECONDS } from './auth';
-import { consumeRefreshToken, REFRESH_TOKEN_TTL_MS } from './session';
+import { verifyAdminToken, signAdminToken } from './auth';
+import {
+  consumeRefreshToken,
+  setSessionCookiePair,
+  ADMIN_COOKIE,
+  ADMIN_REFRESH_COOKIE,
+} from './session';
 import { getAdminEmail, getAdminPassword } from './admin-config';
-
-export const ADMIN_REFRESH_COOKIE = 'admin-refresh';
 
 export async function ensureAdminUser(): Promise<void> {
   if (db.adminInitialized) return;
@@ -33,7 +36,7 @@ export async function requireAdmin() {
   await ensureAdminUser();
 
   const cookieStore = await cookies();
-  const token = cookieStore.get('admin-token')?.value;
+  const token = cookieStore.get(ADMIN_COOKIE)?.value;
 
   // Access token válido: usar directamente.
   if (token) {
@@ -53,21 +56,7 @@ export async function requireAdmin() {
   if (!consumed || !consumed.user.isAdmin) return null;
 
   const adminToken = await signAdminToken(consumed.user.id);
-  const secure = process.env.NODE_ENV === 'production';
-  cookieStore.set('admin-token', adminToken, {
-    httpOnly: true,
-    secure,
-    sameSite: 'strict',
-    path: '/',
-    maxAge: ACCESS_TOKEN_TTL_SECONDS,
-  });
-  cookieStore.set(ADMIN_REFRESH_COOKIE, consumed.newToken, {
-    httpOnly: true,
-    secure,
-    sameSite: 'strict',
-    path: '/',
-    maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
-  });
+  setSessionCookiePair(cookieStore, 'admin', adminToken, consumed.newToken);
 
   return consumed.user;
 }

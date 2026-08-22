@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
 import { loginSchema } from '@/lib/validation';
-import { signUserToken, ACCESS_TOKEN_TTL_SECONDS } from '@/lib/auth';
+import { signUserToken } from '@/lib/auth';
 import { signAdminToken } from '@/lib/admin';
 import {
   issueRefreshToken,
   applyFailedLoginAttempt,
   resetLoginAttempts,
   getLockoutRemainingMs,
-  REFRESH_TOKEN_TTL_MS,
+  setSessionCookiePair,
 } from '@/lib/session';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
@@ -77,41 +77,14 @@ export async function POST(request: Request) {
       { status: 200 }
     );
 
-    const secure = process.env.NODE_ENV === 'production';
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure,
-      sameSite: 'strict',
-      maxAge: ACCESS_TOKEN_TTL_SECONDS,
-      path: '/',
-    });
-    response.cookies.set('auth-refresh', refreshToken, {
-      httpOnly: true,
-      secure,
-      sameSite: 'strict',
-      maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
-      path: '/',
-    });
+    setSessionCookiePair(response.cookies, 'user', token, refreshToken);
 
     // Si la cuenta es administrador, también abrir sesión de admin
     // para que el proxy redirija al panel y el acceso a /admin funcione.
     if (user.isAdmin) {
       const adminToken = await signAdminToken(user.id);
       const adminRefresh = await issueRefreshToken(user.id, 'admin');
-      response.cookies.set('admin-token', adminToken, {
-        httpOnly: true,
-        secure,
-        sameSite: 'strict',
-        maxAge: ACCESS_TOKEN_TTL_SECONDS,
-        path: '/',
-      });
-      response.cookies.set('admin-refresh', adminRefresh, {
-        httpOnly: true,
-        secure,
-        sameSite: 'strict',
-        maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
-        path: '/',
-      });
+      setSessionCookiePair(response.cookies, 'admin', adminToken, adminRefresh);
     }
 
     return response;

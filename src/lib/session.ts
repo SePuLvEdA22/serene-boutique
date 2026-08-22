@@ -25,6 +25,8 @@ import type { RefreshToken, RefreshTokenKind, User } from '@/lib/models';
 
 export const AUTH_COOKIE = 'auth-token';
 export const AUTH_REFRESH_COOKIE = 'auth-refresh';
+export const ADMIN_COOKIE = 'admin-token';
+export const ADMIN_REFRESH_COOKIE = 'admin-refresh';
 
 /** Vigencia de un refresh token: 30 días para clientes. */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -131,21 +133,66 @@ function toSessionUser(user: User): SessionUser {
   };
 }
 
-function setSessionCookies(store: CookieStore, accessToken: string, refreshToken: string): void {
-  store.set(AUTH_COOKIE, accessToken, {
+/**
+ * Destino donde se escriben cookies de sesión: el `cookies()` de next/headers
+ * (server components / route handlers) o `response.cookies` (NextResponse).
+ * Ambos exponen `.set(name, value, options)`.
+ */
+export interface SessionCookieWriter {
+  set(
+    name: string,
+    value: string,
+    options: {
+      httpOnly: boolean;
+      secure: boolean;
+      sameSite: 'strict';
+      maxAge: number;
+      path: string;
+    }
+  ): unknown;
+}
+
+const COOKIE_NAMES = {
+  user: { access: AUTH_COOKIE, refresh: AUTH_REFRESH_COOKIE },
+  admin: { access: ADMIN_COOKIE, refresh: ADMIN_REFRESH_COOKIE },
+} as const;
+
+function baseSessionOptions() {
+  return {
     httpOnly: true,
     secure: secureCookie(),
-    sameSite: 'strict',
+    sameSite: 'strict' as const,
+    path: '/',
+  };
+}
+
+/** Única fuente de verdad de las opciones de cookie de sesión. */
+export function setSessionCookiePair(
+  target: SessionCookieWriter,
+  kind: RefreshTokenKind,
+  accessToken: string,
+  refreshToken: string
+): void {
+  const names = COOKIE_NAMES[kind];
+  target.set(names.access, accessToken, {
+    ...baseSessionOptions(),
     maxAge: ACCESS_TOKEN_TTL_SECONDS,
-    path: '/',
   });
-  store.set(AUTH_REFRESH_COOKIE, refreshToken, {
-    httpOnly: true,
-    secure: secureCookie(),
-    sameSite: 'strict',
+  target.set(names.refresh, refreshToken, {
+    ...baseSessionOptions(),
     maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
-    path: '/',
   });
+}
+
+/** Invalida las cookies de sesión de ambos kinds en la respuesta. */
+export function clearAllSessionCookies(target: { set(name: string, value: string, options: { maxAge: number; path: string }): unknown }): void {
+  for (const name of [AUTH_COOKIE, AUTH_REFRESH_COOKIE, ADMIN_COOKIE, ADMIN_REFRESH_COOKIE]) {
+    target.set(name, '', { maxAge: 0, path: '/' });
+  }
+}
+
+function setSessionCookies(store: CookieStore, accessToken: string, refreshToken: string): void {
+  setSessionCookiePair(store, 'user', accessToken, refreshToken);
 }
 
 export function clearSessionCookies(store: CookieStore): void {

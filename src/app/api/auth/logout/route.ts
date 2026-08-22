@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { csrfBlocked } from '@/lib/csrf';
-import { revokeRefreshToken, AUTH_COOKIE, AUTH_REFRESH_COOKIE } from '@/lib/session';
-import { ADMIN_REFRESH_COOKIE } from '@/lib/admin';
+import {
+  revokeRefreshToken,
+  AUTH_REFRESH_COOKIE,
+  ADMIN_REFRESH_COOKIE,
+  clearAllSessionCookies,
+} from '@/lib/session';
 
 /** Lee una cookie del header `Cookie` sin depender del contexto de request. */
 function cookieValue(cookieHeader: string | null, name: string): string | undefined {
@@ -28,8 +32,6 @@ export async function POST(request: Request) {
   if (adminRefresh) await revokeRefreshToken(adminRefresh);
 
   const response = NextResponse.json({ message: 'Sesión cerrada' });
-  for (const name of [AUTH_COOKIE, AUTH_REFRESH_COOKIE, 'admin-token', ADMIN_REFRESH_COOKIE]) {
-    response.cookies.set(name, '', { maxAge: 0, path: '/' });
-  }
+  clearAllSessionCookies(response.cookies);
   return response;
 }

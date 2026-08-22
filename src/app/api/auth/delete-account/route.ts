@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { getUserRepo } from '@/lib/repositories';
-import { getSessionUser, AUTH_COOKIE, AUTH_REFRESH_COOKIE } from '@/lib/session';
+import { getSessionUser, clearAllSessionCookies } from '@/lib/session';
 import { deleteUserAccount } from '@/lib/account-deletion';
-import { ADMIN_REFRESH_COOKIE } from '@/lib/admin';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
 
@@ -68,9 +67,7 @@ export async function POST(request: Request) {
     await deleteUserAccount(user.id);
 
     const response = NextResponse.json({ message: 'Cuenta eliminada' }, { status: 200 });
-    for (const name of [AUTH_COOKIE, AUTH_REFRESH_COOKIE, 'admin-token', ADMIN_REFRESH_COOKIE]) {
-      response.cookies.set(name, '', { maxAge: 0, path: '/' });
-    }
+    clearAllSessionCookies(response.cookies);
     return response;
   } catch {
     return NextResponse.json({ error: 'Error al eliminar la cuenta' }, { status: 500 });

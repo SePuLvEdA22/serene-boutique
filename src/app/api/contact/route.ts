@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { contactSchema } from '@/lib/validation';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
 import { csrfBlocked } from '@/lib/csrf';
-import { db } from '@/lib/db';
+import { getContactRepo } from '@/lib/repositories';
 
 export async function POST(request: Request) {
   const blocked = csrfBlocked(request);
@@ -31,15 +31,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const contact = {
+    await getContactRepo().create({
       id: `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       ...parsed.data,
       createdAt: new Date().toISOString(),
       read: false,
-    };
-
-    db.contacts.set([...(await db.contacts.get()), contact]);
-    console.log('[Contacto] Mensaje recibido:', contact.email);
+    });
+    console.log('[Contacto] Mensaje recibido:', parsed.data.email);
 
     return NextResponse.json(
       { message: 'Mensaje enviado correctamente' },

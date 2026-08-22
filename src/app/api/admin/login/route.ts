@@ -3,14 +3,14 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { ensureAdminUser, signAdminToken } from '@/lib/admin';
 import { getUserRepo } from '@/lib/repositories';
-import { ACCESS_TOKEN_TTL_SECONDS } from '@/lib/auth';
 import {
   issueRefreshToken,
   applyFailedLoginAttempt,
   resetLoginAttempts,
   getLockoutRemainingMs,
   revokeRefreshToken,
-  REFRESH_TOKEN_TTL_MS,
+  setSessionCookiePair,
+  clearAllSessionCookies,
 } from '@/lib/session';
 import { adminLoginSchema } from '@/lib/validation';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
@@ -39,10 +39,7 @@ export async function DELETE(request: Request) {
   if (userRefresh) await revokeRefreshToken(userRefresh);
 
   const response = NextResponse.json({ message: 'Sesión cerrada' });
-  response.cookies.set('admin-token', '', { maxAge: 0, path: '/' });
-  response.cookies.set('admin-refresh', '', { maxAge: 0, path: '/' });
-  response.cookies.set('auth-token', '', { maxAge: 0, path: '/' });
-  response.cookies.set('auth-refresh', '', { maxAge: 0, path: '/' });
+  clearAllSessionCookies(response.cookies);
   return response;
 }
 
@@ -95,21 +92,7 @@ export async function POST(request: Request) {
     const refreshToken = await issueRefreshToken(user.id, 'admin');
 
     const cookieStore = await cookies();
-    const secure = process.env.NODE_ENV === 'production';
-    cookieStore.set('admin-token', token, {
-      httpOnly: true,
-      secure,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: ACCESS_TOKEN_TTL_SECONDS,
-    });
-    cookieStore.set('admin-refresh', refreshToken, {
-      httpOnly: true,
-      secure,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
-    });
+    setSessionCookiePair(cookieStore, 'admin', token, refreshToken);
 
     return NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email },
