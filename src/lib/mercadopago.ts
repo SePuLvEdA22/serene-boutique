@@ -5,12 +5,6 @@
 
 // ─── Constantes de entorno ────────────────────────────────────────────
 
-export const MP_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_MP_PUBLIC_KEY ?? 'TEST-1234-5678-9012-3456';
-
-export const MP_ACCESS_TOKEN =
-  process.env.MP_ACCESS_TOKEN ?? 'TEST-4321-8765-2109-6543';
-
 /**
  * Indica si estamos en modo de prueba (sandbox) de MercadoPago.
  * Usa NEXT_PUBLIC_MP_PUBLIC_KEY (disponible tanto en server como cliente)
@@ -48,7 +42,7 @@ export const PAYMENT_METHODS: { value: PaymentMethodType; label: string; descrip
 
 // ─── Tarjetas de prueba ───────────────────────────────────────────────
 
-export const TEST_CARD_NUMBERS = [
+const TEST_CARD_NUMBERS = [
   { label: 'Visa', number: '4000 0000 0000 0004' },
   { label: 'Mastercard', number: '5031 7557 3453 0604' },
   { label: 'American Express', number: '3739 5334 5237 9004' },
@@ -210,7 +204,7 @@ export function applyDiscountToPreferenceItems(
 
 // ─── Mensajes de prueba ──────────────────────────────────────────────
 
-export function getTestCardMessage(): string {
+function getTestCardMessage(): string {
   return (
     `🧪 Entorno de prueba — No se realizarán cargos reales.\n\n` +
     `Tarjetas de prueba disponibles:\n` +
@@ -219,7 +213,7 @@ export function getTestCardMessage(): string {
   );
 }
 
-export function getPseTestMessage(): string {
+function getPseTestMessage(): string {
   return (
     `🧪 Entorno de prueba — PSE (Colombia)\n\n` +
     `Para probar PSE en modo test:\n` +
@@ -232,32 +226,4 @@ export function getPseTestMessage(): string {
 
 export function getTestMessage(paymentMethod: PaymentMethodType): string {
   return paymentMethod === 'pse' ? getPseTestMessage() : getTestCardMessage();
-}
-
-// ─── SDK de MercadoPago (carga dinámica) ─────────────────────────────
-
-/**
- * Carga el SDK de MercadoPago dinámicamente en el navegador.
- * Útil para usar Wallet Brick o CardForm en el frontend si se desea.
- */
-export function loadMercadoPagoSdk(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('MercadoPago SDK solo se puede cargar en el navegador'));
-      return;
-    }
-
-    const scriptId = 'mercadopago-sdk';
-    if (document.getElementById(scriptId)) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://sdk.mercadopago.com/js/v2';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Error al cargar SDK de MercadoPago'));
-    document.body.appendChild(script);
-  });
 }

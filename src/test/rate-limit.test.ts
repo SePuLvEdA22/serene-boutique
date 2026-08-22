@@ -133,7 +133,12 @@ describe('UpstashRateLimitStore', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer token' }),
       })
     );
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as string[][];
+    const [pipelineUrl, pipelineInit] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit | undefined
+    ];
+    expect(pipelineUrl).toBe('https://upstash.example.com/pipeline');
+    const body = JSON.parse(String(pipelineInit?.body)) as string[][];
     expect(body[0]).toEqual(['INCR', 'clave']);
     expect(body[1]).toEqual(['EXPIRE', 'clave', '60', 'NX']);
     expect(body[2]).toEqual(['PTTL', 'clave']);
