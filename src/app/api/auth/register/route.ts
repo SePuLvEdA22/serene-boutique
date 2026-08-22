@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     const { name, email, password, consent } = parsed.data;
 
-    if (getUserRepo().findByEmail(email)) {
+    if (await getUserRepo().findByEmail(email)) {
       return NextResponse.json(
         { error: 'El email ya está registrado' },
         { status: 409 }
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
-    getUserRepo().create({
+    await getUserRepo().create({
       id,
       name,
       email,

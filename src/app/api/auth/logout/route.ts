@@ -24,8 +24,8 @@ export async function POST(request: Request) {
   const cookieHeader = request.headers.get('cookie');
   const userRefresh = cookieValue(cookieHeader, AUTH_REFRESH_COOKIE);
   const adminRefresh = cookieValue(cookieHeader, ADMIN_REFRESH_COOKIE);
-  if (userRefresh) revokeRefreshToken(userRefresh);
-  if (adminRefresh) revokeRefreshToken(adminRefresh);
+  if (userRefresh) await revokeRefreshToken(userRefresh);
+  if (adminRefresh) await revokeRefreshToken(adminRefresh);
 
   const response = NextResponse.json({ message: 'Sesión cerrada' });
   for (const name of [AUTH_COOKIE, AUTH_REFRESH_COOKIE, 'admin-token', ADMIN_REFRESH_COOKIE]) {

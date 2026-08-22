@@ -37,7 +37,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const repo = getPromoRepo();
-    const existing = repo.findById(id);
+    const existing = await repo.findById(id);
     if (!existing) {
       return NextResponse.json({ error: 'Promoción no encontrada' }, { status: 404 });
     }
@@ -45,14 +45,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const data = { ...parsed.data };
     if (data.code) {
       const code = data.code.toUpperCase();
-      const dup = repo.findByCode(code);
+      const dup = await repo.findByCode(code);
       if (dup && dup.id !== id) {
         return NextResponse.json({ error: 'Ya existe una promoción con ese código' }, { status: 409 });
       }
       data.code = code;
     }
 
-    const updated = repo.update(id, data);
+    const updated = await repo.update(id, data);
     return NextResponse.json({ promo: updated });
   } catch {
     return NextResponse.json({ error: 'Error al actualizar promoción' }, { status: 500 });
@@ -81,7 +81,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     const { id } = await params;
-    const deleted = getPromoRepo().delete(id);
+    const deleted = await getPromoRepo().delete(id);
 
     if (!deleted) {
       return NextResponse.json({ error: 'Promoción no encontrada' }, { status: 404 });

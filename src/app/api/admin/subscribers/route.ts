@@ -8,9 +8,9 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const subscribers = getSubscriberRepo()
-    .findAll()
-    .sort((a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime());
+  const subscribers = (await getSubscriberRepo().findAll()).sort(
+    (a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime()
+  );
 
   return NextResponse.json({ subscribers });
 }

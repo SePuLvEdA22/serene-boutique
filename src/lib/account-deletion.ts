@@ -13,20 +13,20 @@
 import { db } from './db';
 import { getOrderRepo, getUserRepo } from './repositories';
 
-export function deleteUserAccount(userId: string): void {
-  const user = getUserRepo().findById(userId);
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const user = await getUserRepo().findById(userId);
   if (!user) return;
 
   // Eliminar órdenes con datos personales del usuario
-  const orders = getOrderRepo().findByUser(userId);
+  const orders = await getOrderRepo().findByUser(userId);
   for (const order of orders) {
-    getOrderRepo().delete(order.id);
+    await getOrderRepo().delete(order.id);
   }
 
   // Baja automática del newsletter (mismo email)
-  const subscribers = db.subscribers.get();
-  db.subscribers.set(subscribers.filter((s) => s.email !== user.email));
+  const subscribers = await db.subscribers.get();
+  await db.subscribers.set(subscribers.filter((s) => s.email !== user.email));
 
   // Eliminar el usuario (y con él sus refresh tokens y contador de intentos)
-  getUserRepo().delete(userId);
+  await getUserRepo().delete(userId);
 }

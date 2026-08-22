@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const { email, password } = parsed.data;
-    const user = getUserRepo().findByEmail(email);
+    const user = await getUserRepo().findByEmail(email);
 
     // Bloqueo temporal de cuenta tras N intentos fallidos (fuerza bruta).
     if (user && getLockoutRemainingMs(user) > 0) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
-      if (user) applyFailedLoginAttempt(user.id);
+      if (user) await applyFailedLoginAttempt(user.id);
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
@@ -60,14 +60,14 @@ export async function POST(request: Request) {
     }
 
     // Login exitoso: reiniciar contador de intentos y emitir sesión.
-    resetLoginAttempts(user.id);
+    await resetLoginAttempts(user.id);
 
     const token = await signUserToken({
       id: user.id,
       email: user.email,
       name: user.name,
     });
-    const refreshToken = issueRefreshToken(user.id, 'user');
+    const refreshToken = await issueRefreshToken(user.id, 'user');
 
     const response = NextResponse.json(
       {
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     // para que el proxy redirija al panel y el acceso a /admin funcione.
     if (user.isAdmin) {
       const adminToken = await signAdminToken(user.id);
-      const adminRefresh = issueRefreshToken(user.id, 'admin');
+      const adminRefresh = await issueRefreshToken(user.id, 'admin');
       response.cookies.set('admin-token', adminToken, {
         httpOnly: true,
         secure,

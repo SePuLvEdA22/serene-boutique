@@ -27,20 +27,20 @@ export interface StoreData {
 }
 
 export interface DataStore {
-  getUsers(): User[];
-  setUsers(users: User[]): void;
-  getProducts(): Product[];
-  setProducts(products: Product[]): void;
-  getOrders(): Order[];
-  setOrders(orders: Order[]): void;
-  getContacts(): Contact[];
-  setContacts(contacts: Contact[]): void;
-  getSubscribers(): Subscriber[];
-  setSubscribers(subscribers: Subscriber[]): void;
-  getSettings(): Settings;
-  setSettings(settings: Settings): void;
-  getPromos(): Promo[];
-  setPromos(promos: Promo[]): void;
+  getUsers(): Promise<User[]>;
+  setUsers(users: User[]): Promise<void>;
+  getProducts(): Promise<Product[]>;
+  setProducts(products: Product[]): Promise<void>;
+  getOrders(): Promise<Order[]>;
+  setOrders(orders: Order[]): Promise<void>;
+  getContacts(): Promise<Contact[]>;
+  setContacts(contacts: Contact[]): Promise<void>;
+  getSubscribers(): Promise<Subscriber[]>;
+  setSubscribers(subscribers: Subscriber[]): Promise<void>;
+  getSettings(): Promise<Settings>;
+  setSettings(settings: Settings): Promise<void>;
+  getPromos(): Promise<Promo[]>;
+  setPromos(promos: Promo[]): Promise<void>;
   getAdminInitialized(): boolean;
   setAdminInitialized(val: boolean): void;
 }

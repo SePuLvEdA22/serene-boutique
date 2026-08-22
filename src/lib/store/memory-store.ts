@@ -30,20 +30,20 @@ export class MemoryStore implements DataStore {
     }
   }
 
-  getUsers(): StoreUser[] { return this.data.users; }
-  setUsers(users: StoreUser[]): void { this.data.users = users; }
-  getProducts(): Product[] { return this.data.products; }
-  setProducts(products: Product[]): void { this.data.products = products; }
-  getOrders(): StoreOrder[] { return this.data.orders; }
-  setOrders(orders: StoreOrder[]): void { this.data.orders = orders; }
-  getContacts(): Contact[] { return this.data.contacts; }
-  setContacts(contacts: Contact[]): void { this.data.contacts = contacts; }
-  getSubscribers(): Subscriber[] { return this.data.subscribers; }
-  setSubscribers(subscribers: Subscriber[]): void { this.data.subscribers = subscribers; }
-  getSettings(): StoreSettings { return this.data.settings; }
-  setSettings(settings: StoreSettings): void { this.data.settings = settings; }
-  getPromos(): StorePromo[] { return this.data.promos; }
-  setPromos(promos: StorePromo[]): void { this.data.promos = promos; }
+  async getUsers(): Promise<StoreUser[]> { return this.data.users; }
+  async setUsers(users: StoreUser[]): Promise<void> { this.data.users = users; }
+  async getProducts(): Promise<Product[]> { return this.data.products; }
+  async setProducts(products: Product[]): Promise<void> { this.data.products = products; }
+  async getOrders(): Promise<StoreOrder[]> { return this.data.orders; }
+  async setOrders(orders: StoreOrder[]): Promise<void> { this.data.orders = orders; }
+  async getContacts(): Promise<Contact[]> { return this.data.contacts; }
+  async setContacts(contacts: Contact[]): Promise<void> { this.data.contacts = contacts; }
+  async getSubscribers(): Promise<Subscriber[]> { return this.data.subscribers; }
+  async setSubscribers(subscribers: Subscriber[]): Promise<void> { this.data.subscribers = subscribers; }
+  async getSettings(): Promise<StoreSettings> { return this.data.settings; }
+  async setSettings(settings: StoreSettings): Promise<void> { this.data.settings = settings; }
+  async getPromos(): Promise<StorePromo[]> { return this.data.promos; }
+  async setPromos(promos: StorePromo[]): Promise<void> { this.data.promos = promos; }
   getAdminInitialized(): boolean { return this._adminInitialized; }
   setAdminInitialized(val: boolean): void { this._adminInitialized = val; }
 }

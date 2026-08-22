@@ -7,7 +7,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getProductById(id);
 
   if (!product) {
     return { title: "Producto no encontrado" };

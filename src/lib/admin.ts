@@ -8,15 +8,15 @@ import { getAdminEmail, getAdminPassword } from './admin-config';
 
 export const ADMIN_REFRESH_COOKIE = 'admin-refresh';
 
-export function ensureAdminUser() {
+export async function ensureAdminUser(): Promise<void> {
   if (db.adminInitialized) return;
 
   const email = getAdminEmail();
-  const existing = getUserRepo().findByEmail(email);
+  const existing = await getUserRepo().findByEmail(email);
 
   if (!existing || !existing.isAdmin) {
     const password = getAdminPassword();
-    getUserRepo().create({
+    await getUserRepo().create({
       id: 'admin-1',
       name: 'Administrador',
       email,
@@ -30,7 +30,7 @@ export function ensureAdminUser() {
 }
 
 export async function requireAdmin() {
-  ensureAdminUser();
+  await ensureAdminUser();
 
   const cookieStore = await cookies();
   const token = cookieStore.get('admin-token')?.value;
@@ -39,7 +39,7 @@ export async function requireAdmin() {
   if (token) {
     const payload = await verifyAdminToken(token);
     if (payload) {
-      const user = getUserRepo().findById(payload.userId);
+      const user = await getUserRepo().findById(payload.userId);
       if (user?.isAdmin) return user;
       return null;
     }
@@ -49,7 +49,7 @@ export async function requireAdmin() {
   const refresh = cookieStore.get(ADMIN_REFRESH_COOKIE)?.value;
   if (!refresh) return null;
 
-  const consumed = consumeRefreshToken(refresh, 'admin');
+  const consumed = await consumeRefreshToken(refresh, 'admin');
   if (!consumed || !consumed.user.isAdmin) return null;
 
   const adminToken = await signAdminToken(consumed.user.id);

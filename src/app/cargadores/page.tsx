@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/cargadores" },
 };
 
-export default function CargadoresPage() {
-  const products = getProductsByCategory("cargadores");
+export default async function CargadoresPage() {
+  const products = await getProductsByCategory("cargadores");
 
   return (
     <div className="container-store py-12 animate-fade-in">

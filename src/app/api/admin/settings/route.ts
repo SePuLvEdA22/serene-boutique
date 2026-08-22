@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  return NextResponse.json({ settings: getSettingsRepo().get() });
+  return NextResponse.json({ settings: await getSettingsRepo().get() });
 }
 
 export async function PUT(request: Request) {
@@ -42,7 +42,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Datos de configuración inválidos' }, { status: 400 });
     }
 
-    const settings = getSettingsRepo().update(parsed.data);
+    const settings = await getSettingsRepo().update(parsed.data);
     return NextResponse.json({ settings });
   } catch {
     return NextResponse.json({ error: 'Error al guardar configuración' }, { status: 500 });

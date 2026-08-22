@@ -3,23 +3,25 @@ import type { ISubscriberRepository } from './interfaces';
 import { db } from '@/lib/db';
 
 export class StoreSubscriberRepository implements ISubscriberRepository {
-  findAll(): Subscriber[] {
+  async findAll(): Promise<Subscriber[]> {
     return db.subscribers.get();
   }
 
-  findByEmail(email: string): Subscriber | undefined {
-    return db.subscribers.get().find(s => s.email === email);
+  async findByEmail(email: string): Promise<Subscriber | undefined> {
+    const subscribers = await db.subscribers.get();
+    return subscribers.find(s => s.email === email);
   }
 
-  create(subscriber: Subscriber): void {
-    db.subscribers.set([...db.subscribers.get(), subscriber]);
+  async create(subscriber: Subscriber): Promise<void> {
+    const subscribers = await db.subscribers.get();
+    await db.subscribers.set([...subscribers, subscriber]);
   }
 
-  delete(id: string): boolean {
-    const subscribers = db.subscribers.get();
+  async delete(id: string): Promise<boolean> {
+    const subscribers = await db.subscribers.get();
     const next = subscribers.filter((s) => s.id !== id);
     if (next.length === subscribers.length) return false;
-    db.subscribers.set(next);
+    await db.subscribers.set(next);
     return true;
   }
 }

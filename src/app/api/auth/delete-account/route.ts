@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = getUserRepo().findById(session.id);
+    const user = await getUserRepo().findById(session.id);
     if (!user) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La contraseña no es correcta' }, { status: 400 });
     }
 
-    deleteUserAccount(user.id);
+    await deleteUserAccount(user.id);
 
     const response = NextResponse.json({ message: 'Cuenta eliminada' }, { status: 200 });
     for (const name of [AUTH_COOKIE, AUTH_REFRESH_COOKIE, 'admin-token', ADMIN_REFRESH_COOKIE]) {

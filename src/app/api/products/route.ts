@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)));
 
-  let result = getProductRepo().findAll().filter(p => p.active !== false);
+  let result = (await getProductRepo().findAll()).filter(p => p.active !== false);
 
   if (category && (category === 'fundas' || category === 'cargadores' || category === 'termos' || category === 'personalizados')) {
     result = result.filter(p => p.category === category);

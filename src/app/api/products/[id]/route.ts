@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const product = getProductRepo().findById(id);
+  const product = await getProductRepo().findById(id);
 
   if (!product || product.active === false) {
     return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });

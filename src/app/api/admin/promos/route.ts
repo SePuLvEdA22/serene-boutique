@@ -13,9 +13,9 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const promos = getPromoRepo()
-    .findAll()
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const promos = (await getPromoRepo().findAll()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return NextResponse.json({ promos });
 }
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const repo = getPromoRepo();
     const code = parsed.data.code.toUpperCase();
 
-    if (repo.findByCode(code)) {
+    if (await repo.findByCode(code)) {
       return NextResponse.json({ error: 'Ya existe una promoción con ese código' }, { status: 409 });
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       usedCount: 0,
     };
 
-    repo.create(promo);
+    await repo.create(promo);
     return NextResponse.json({ promo }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Error al crear promoción' }, { status: 500 });

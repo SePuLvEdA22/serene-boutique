@@ -27,9 +27,7 @@ export async function GET(request: Request) {
   const fromMs = from ? new Date(`${from}T00:00:00`).getTime() : null;
   const toMs = to ? new Date(`${to}T23:59:59.999`).getTime() : null;
 
-  const orders = getOrderRepo()
-    .findAll()
-    .filter((o) => {
+  const orders = (await getOrderRepo().findAll()).filter((o) => {
       if (status !== 'all' && o.status !== status) return false;
       const t = new Date(o.createdAt).getTime();
       if (fromMs !== null && t < fromMs) return false;

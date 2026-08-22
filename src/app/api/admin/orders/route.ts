@@ -8,5 +8,5 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  return NextResponse.json({ orders: getOrderRepo().findAll() });
+  return NextResponse.json({ orders: await getOrderRepo().findAll() });
 }

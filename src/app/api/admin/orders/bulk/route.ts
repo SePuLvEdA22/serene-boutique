@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     let updated = 0;
 
     for (const id of ids) {
-      const result = orderRepo.updateStatus(id, status);
+      const result = await orderRepo.updateStatus(id, status);
       if (result) updated += 1;
     }
 

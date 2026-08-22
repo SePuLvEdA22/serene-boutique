@@ -15,7 +15,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const product = getProductRepo().findById(id);
+  const product = await getProductRepo().findById(id);
 
   if (!product) {
     return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
@@ -51,7 +51,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const existing = getProductRepo().findById(id);
+    const existing = await getProductRepo().findById(id);
     if (!existing) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
@@ -98,7 +98,7 @@ export async function PUT(
       );
     }
 
-    const updated = getProductRepo().update(id, parsed.data);
+    const updated = await getProductRepo().update(id, parsed.data);
 
     return NextResponse.json({ product: updated });
   } catch {
@@ -130,7 +130,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const deleted = getProductRepo().delete(id);
+  const deleted = await getProductRepo().delete(id);
 
   if (!deleted) {
     return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });

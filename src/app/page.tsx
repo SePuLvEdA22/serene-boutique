@@ -4,8 +4,8 @@ import ProductGrid from '@/components/ProductGrid';
 import NewsletterSection from '@/components/NewsletterSection';
 import { getFeaturedProducts } from '@/lib/products';
 
-export default function HomePage() {
-  const featured = getFeaturedProducts();
+export default async function HomePage() {
+  const featured = await getFeaturedProducts();
 
   return (
     <div className="container-store">

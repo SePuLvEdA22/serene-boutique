@@ -3,46 +3,49 @@ import type { IPromoRepository } from './interfaces';
 import { db } from '@/lib/db';
 
 export class StorePromoRepository implements IPromoRepository {
-  findAll(): Promo[] {
+  async findAll(): Promise<Promo[]> {
     return db.promos.get();
   }
 
-  findById(id: string): Promo | undefined {
-    return db.promos.get().find((p) => p.id === id);
+  async findById(id: string): Promise<Promo | undefined> {
+    const promos = await db.promos.get();
+    return promos.find((p) => p.id === id);
   }
 
-  findByCode(code: string): Promo | undefined {
+  async findByCode(code: string): Promise<Promo | undefined> {
     const normalized = code.trim().toUpperCase();
-    return db.promos.get().find((p) => p.code === normalized);
+    const promos = await db.promos.get();
+    return promos.find((p) => p.code === normalized);
   }
 
-  create(promo: Promo): void {
-    db.promos.set([...db.promos.get(), promo]);
+  async create(promo: Promo): Promise<void> {
+    const promos = await db.promos.get();
+    await db.promos.set([...promos, promo]);
   }
 
-  update(id: string, data: Partial<Promo>): Promo | undefined {
-    const promos = db.promos.get();
+  async update(id: string, data: Partial<Promo>): Promise<Promo | undefined> {
+    const promos = await db.promos.get();
     const target = promos.find((p) => p.id === id);
     if (!target) return undefined;
     const updated = { ...target, ...data, id: target.id };
-    db.promos.set(promos.map((p) => (p.id === id ? updated : p)));
+    await db.promos.set(promos.map((p) => (p.id === id ? updated : p)));
     return updated;
   }
 
-  delete(id: string): boolean {
-    const promos = db.promos.get();
+  async delete(id: string): Promise<boolean> {
+    const promos = await db.promos.get();
     const next = promos.filter((p) => p.id !== id);
     if (next.length === promos.length) return false;
-    db.promos.set(next);
+    await db.promos.set(next);
     return true;
   }
 
-  incrementUsage(id: string): Promo | undefined {
-    const promos = db.promos.get();
+  async incrementUsage(id: string): Promise<Promo | undefined> {
+    const promos = await db.promos.get();
     const target = promos.find((p) => p.id === id);
     if (!target) return undefined;
     const updated = { ...target, usedCount: (target.usedCount ?? 0) + 1 };
-    db.promos.set(promos.map((p) => (p.id === id ? updated : p)));
+    await db.promos.set(promos.map((p) => (p.id === id ? updated : p)));
     return updated;
   }
 }

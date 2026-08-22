@@ -229,7 +229,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(lastExternalReference).toBe(data.orderId);
 
     // 2) La orden se crea en estado "pending" con los items del carrito
-    const pending = getOrderRepo().findById(lastOrderId);
+    const pending = await getOrderRepo().findById(lastOrderId);
     expect(pending).toBeDefined();
     expect(pending!.status).toBe('pending');
     expect(pending!.items).toHaveLength(2);
@@ -246,7 +246,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(webhookRes.status).toBe(200);
 
     // 4) La orden cambia a "confirmed"
-    const updated = getOrderRepo().findById(lastOrderId);
+    const updated = await getOrderRepo().findById(lastOrderId);
     expect(updated!.status).toBe('confirmed');
   });
 
@@ -340,7 +340,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
   });
 
   it('debería_rechazar_precio_manipulado_sin_crear_orden', async () => {
-    const ordersBefore = getOrderRepo().findAll().length;
+    const ordersBefore = (await getOrderRepo().findAll()).length;
 
     const tampered = {
       ...buildCheckoutPayload(),
@@ -362,11 +362,11 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(data.error).toBe('Precio inválido');
 
     // No se debe haber creado ninguna orden nueva
-    expect(getOrderRepo().findAll()).toHaveLength(ordersBefore);
+    expect(await getOrderRepo().findAll()).toHaveLength(ordersBefore);
   });
 
   it('debería_rechazar_producto_inexistente_sin_crear_orden', async () => {
-    const ordersBefore = getOrderRepo().findAll().length;
+    const ordersBefore = (await getOrderRepo().findAll()).length;
 
     const bogus = {
       ...buildCheckoutPayload(),
@@ -384,7 +384,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     );
 
     expect(res.status).toBe(400);
-    expect(getOrderRepo().findAll()).toHaveLength(ordersBefore);
+    expect(await getOrderRepo().findAll()).toHaveLength(ordersBefore);
   });
 
   it('debería_rechazar_webhook_con_monto_incorrecto_sin_confirmar_la_orden', async () => {
@@ -412,7 +412,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(res.status).toBe(409);
 
     // La orden NO debe cambiar de estado: sigue pendiente
-    const order = getOrderRepo().findById(orderId);
+    const order = await getOrderRepo().findById(orderId);
     expect(order!.status).toBe('pending');
     expect(order!.mpPaymentId).toBeUndefined();
   });
@@ -440,7 +440,7 @@ describe('flujo de checkout completo (carrito → preferencia → webhook → or
     expect(res.status).toBe(401);
 
     // La orden NO debe cambiar de estado: sigue pendiente
-    const order = getOrderRepo().findById(orderId);
+    const order = await getOrderRepo().findById(orderId);
     expect(order!.status).toBe('pending');
   });
 });

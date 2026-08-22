@@ -41,9 +41,9 @@ export interface OrderItemsValidationResult {
   errors: string[];
 }
 
-export function validateOrderItems(
+export async function validateOrderItems(
   input: OrderItemCandidate[]
-): OrderItemsValidationResult {
+): Promise<OrderItemsValidationResult> {
   const items: ValidatedOrderItem[] = [];
   const errors: string[] = [];
 
@@ -65,7 +65,7 @@ export function validateOrderItems(
       continue;
     }
 
-    const product = getProductRepo().findById(candidate.productId);
+    const product = await getProductRepo().findById(candidate.productId);
     if (!product) {
       errors.push('Producto no encontrado');
       continue;

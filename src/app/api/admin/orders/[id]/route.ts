@@ -18,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const order = getOrderRepo().findById(id);
+  const order = await getOrderRepo().findById(id);
 
   if (!order) {
     return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
@@ -59,7 +59,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       );
     }
 
-    const updated = getOrderRepo().updateStatus(id, parsed.data.status);
+    const updated = await getOrderRepo().updateStatus(id, parsed.data.status);
 
     if (!updated) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

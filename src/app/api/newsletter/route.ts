@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const { email, consent } = parsed.data;
-    const existing = db.subscribers.get().find(s => s.email === email);
+    const existing = (await db.subscribers.get()).find(s => s.email === email);
 
     if (existing) {
       return NextResponse.json(
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       consentAt: consent ? new Date().toISOString() : undefined,
     };
 
-    db.subscribers.set([...db.subscribers.get(), subscriber]);
+    db.subscribers.set([...(await db.subscribers.get()), subscriber]);
     console.log('[Newsletter] Nuevo suscriptor:', email);
 
     return NextResponse.json(

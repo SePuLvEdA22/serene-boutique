@@ -3,36 +3,39 @@ import type { IUserRepository } from './interfaces';
 import { db } from '@/lib/db';
 
 export class StoreUserRepository implements IUserRepository {
-  findAll(): User[] {
+  async findAll(): Promise<User[]> {
     return db.users.get();
   }
 
-  findById(id: string): User | undefined {
-    return db.users.get().find(u => u.id === id);
+  async findById(id: string): Promise<User | undefined> {
+    const users = await db.users.get();
+    return users.find(u => u.id === id);
   }
 
-  findByEmail(email: string): User | undefined {
-    return db.users.get().find(u => u.email === email);
+  async findByEmail(email: string): Promise<User | undefined> {
+    const users = await db.users.get();
+    return users.find(u => u.email === email);
   }
 
-  create(user: User): void {
-    db.users.set([...db.users.get(), user]);
+  async create(user: User): Promise<void> {
+    const users = await db.users.get();
+    await db.users.set([...users, user]);
   }
 
-  update(id: string, data: Partial<User>): void {
-    const list = db.users.get();
+  async update(id: string, data: Partial<User>): Promise<void> {
+    const list = await db.users.get();
     const index = list.findIndex(u => u.id === id);
     if (index === -1) return;
     list[index] = { ...list[index], ...data };
-    db.users.set(list);
+    await db.users.set(list);
   }
 
-  delete(id: string): boolean {
-    const list = db.users.get();
+  async delete(id: string): Promise<boolean> {
+    const list = await db.users.get();
     const index = list.findIndex(u => u.id === id);
     if (index === -1) return false;
     list.splice(index, 1);
-    db.users.set(list);
+    await db.users.set(list);
     return true;
   }
 }

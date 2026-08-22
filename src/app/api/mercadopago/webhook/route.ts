@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       const orderStatus = mapMpStatusToOrderStatus(payment.status);
 
       if (orderStatus && payment.external_reference) {
-        const order = getOrderRepo().findById(payment.external_reference);
+        const order = await getOrderRepo().findById(payment.external_reference);
         if (order) {
           // Seguridad: verificar que el monto pagado coincida con el total de la
           // orden. Un pago por un monto distinto (p. ej. $1) no debe confirmar la
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
             );
           }
 
-          getOrderRepo().update(order.id, {
+          await getOrderRepo().update(order.id, {
             status: orderStatus,
             mpPaymentId: String(payment.id),
           });

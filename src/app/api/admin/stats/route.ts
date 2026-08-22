@@ -9,10 +9,10 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const allOrders = getOrderRepo().findAll();
-  const allProducts = getProductRepo().findAll();
-  const allUsers = getUserRepo().findAll();
-  const allContacts = getContactRepo().findAll();
+  const allOrders = await getOrderRepo().findAll();
+  const allProducts = await getProductRepo().findAll();
+  const allUsers = await getUserRepo().findAll();
+  const allContacts = await getContactRepo().findAll();
 
   const stats = computeAdminStats(allOrders, allProducts, allUsers, new Date(), allContacts);
 

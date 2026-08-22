@@ -8,8 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const users = getUserRepo()
-    .findAll()
+  const users = (await getUserRepo().findAll())
     .filter(u => !u.isAdmin)
     .map((u) => ({ id: u.id, name: u.name, email: u.email }));
 

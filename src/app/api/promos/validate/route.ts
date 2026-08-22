@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     const { code, subtotal } = parsed.data;
-    const promo = getPromoRepo().findByCode(code);
+    const promo = await getPromoRepo().findByCode(code);
     const result = validateCoupon(promo, subtotal);
 
     if (!result.valid) {

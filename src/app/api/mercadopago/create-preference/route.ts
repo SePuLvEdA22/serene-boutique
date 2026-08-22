@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     // Seguridad: validar items contra el catálogo. Los precios y nombres del
     // cliente NO se aceptan tal cual — se recalculan desde la base de productos
     // para impedir manipulación de precios (p. ej. pagar $1 por un producto caro).
-    const validated = validateOrderItems(
+    const validated = await validateOrderItems(
       items.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     let discount = 0;
     let promoId: string | undefined;
     if (couponCode) {
-      const coupon = validateCoupon(getPromoRepo().findByCode(couponCode), validated.total);
+      const coupon = validateCoupon(await getPromoRepo().findByCode(couponCode), validated.total);
       if (!coupon.valid) {
         return NextResponse.json(
           { error: coupon.reason || 'Cupón inválido' },
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       }
       discount = coupon.discount ?? 0;
       promoId = coupon.promo?.id;
-      if (promoId) getPromoRepo().incrementUsage(promoId);
+      if (promoId) await getPromoRepo().incrementUsage(promoId);
     }
 
     const orderTotal = validated.total - discount;
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    getOrderRepo().create(order);
+    await getOrderRepo().create(order);
 
     if (!mpAccessToken) {
       // Modo de prueba: devolver URL simulada
@@ -222,7 +222,7 @@ export async function POST(request: Request) {
       console.error('[MercadoPago] Error al crear preferencia:', errorText);
 
       // Actualizar orden como cancelada
-      getOrderRepo().updateStatus(orderId, 'cancelled');
+      await getOrderRepo().updateStatus(orderId, 'cancelled');
 
       return NextResponse.json(
         { error: 'Error al crear la preferencia de pago' },
@@ -233,9 +233,9 @@ export async function POST(request: Request) {
     const data = await mpResponse.json();
 
     // Guardar el ID de la preferencia en la orden
-    const updatedOrder = getOrderRepo().findById(orderId);
+    const updatedOrder = await getOrderRepo().findById(orderId);
     if (updatedOrder) {
-      getOrderRepo().updateStatus(orderId, 'pending');
+      await getOrderRepo().updateStatus(orderId, 'pending');
     }
 
     return NextResponse.json(

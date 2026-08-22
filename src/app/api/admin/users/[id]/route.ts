@@ -9,15 +9,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const target = getUserRepo().findById(id);
+  const target = await getUserRepo().findById(id);
 
   if (!target || target.isAdmin) {
     return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
   }
 
-  const orders = getOrderRepo()
-    .findAll()
-    .filter((o) => o.userId === id);
+  const orders = (await getOrderRepo().findAll()).filter((o) => o.userId === id);
 
   const totalSpent = orders
     .filter((o) => o.status !== 'cancelled')

@@ -16,7 +16,7 @@ async function main() {
 
   const { getStore } = await import('../src/lib/store');
   const store = getStore();
-  const users = store.getUsers();
+  const users = await store.getUsers();
 
   const existing = users.find((u) => u.email === ADMIN_EMAIL && u.isAdmin);
   if (existing) {
@@ -24,7 +24,7 @@ async function main() {
     return;
   }
 
-  store.setUsers([
+  await store.setUsers([
     ...users,
     {
       id: 'admin-1',

@@ -52,7 +52,7 @@ export async function GET(
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
 
-    const order = getOrderRepo().findById(id);
+    const order = await getOrderRepo().findById(id);
 
     if (!order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

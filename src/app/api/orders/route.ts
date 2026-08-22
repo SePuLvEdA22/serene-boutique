@@ -18,12 +18,10 @@ export async function GET() {
       return NextResponse.json({ orders: [] });
     }
 
-    const orders = getOrderRepo()
-      .findByUser(session.id)
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+    const orders = (await getOrderRepo().findByUser(session.id)).sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
     return NextResponse.json({ orders });
   } catch {

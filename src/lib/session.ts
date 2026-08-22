@@ -60,12 +60,12 @@ function refreshEntry(token: string, kind: RefreshTokenKind) {
 }
 
 /** Emite un refresh token para un usuario y lo persiste (solo el hash). */
-export function issueRefreshToken(userId: string, kind: RefreshTokenKind): string {
+export async function issueRefreshToken(userId: string, kind: RefreshTokenKind): Promise<string> {
   const token = generateRefreshToken();
-  const user = getUserRepo().findById(userId);
+  const user = await getUserRepo().findById(userId);
   if (user) {
     const activeOfKind = activeRefreshEntries(user).filter((t) => t.kind === kind);
-    getUserRepo().update(userId, {
+    await getUserRepo().update(userId, {
       refreshTokens: [
         ...activeOfKind.slice(-(MAX_REFRESH_TOKENS_PER_KIND - 1)),
         refreshEntry(token, kind),
@@ -79,13 +79,14 @@ export function issueRefreshToken(userId: string, kind: RefreshTokenKind): strin
  * Consume un refresh token (rotación): invalida el usado y emite uno nuevo.
  * Devuelve `null` si el token no existe, expiró o no corresponde al `kind`.
  */
-export function consumeRefreshToken(
+export async function consumeRefreshToken(
   token: string,
   kind: RefreshTokenKind
-): { user: User; newToken: string } | null {
+): Promise<{ user: User; newToken: string } | null> {
   const hash = hashRefreshToken(token);
 
-  const user = getUserRepo().findAll().find((u) =>
+  const all = await getUserRepo().findAll();
+  const user = all.find((u) =>
     (u.refreshTokens ?? []).some(
       (t) => t.kind === kind && t.hash === hash && new Date(t.expiresAt).getTime() > Date.now()
     )
@@ -97,7 +98,7 @@ export function consumeRefreshToken(
     (t) => !(t.kind === kind && t.hash === hash)
   );
   const newToken = generateRefreshToken();
-  getUserRepo().update(user.id, {
+  await getUserRepo().update(user.id, {
     refreshTokens: [
       ...remaining.slice(-(MAX_REFRESH_TOKENS_PER_KIND - 1)),
       refreshEntry(newToken, kind),
@@ -108,14 +109,15 @@ export function consumeRefreshToken(
 }
 
 /** Revoca un refresh token concreto (logout) buscándolo por su hash. */
-export function revokeRefreshToken(token: string): void {
+export async function revokeRefreshToken(token: string): Promise<void> {
   if (!token) return;
   const hash = hashRefreshToken(token);
-  const user = getUserRepo().findAll().find((u) =>
+  const all = await getUserRepo().findAll();
+  const user = all.find((u) =>
     (u.refreshTokens ?? []).some((t) => t.hash === hash)
   );
   if (!user) return;
-  getUserRepo().update(user.id, {
+  await getUserRepo().update(user.id, {
     refreshTokens: (user.refreshTokens ?? []).filter((t) => t.hash !== hash),
   });
 }
@@ -163,7 +165,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (access) {
     const payload = await verifyUserToken(access);
     if (payload) {
-      const stored = getUserRepo().findById(payload.id);
+      const stored = await getUserRepo().findById(payload.id);
       return stored ? toSessionUser(stored) : null;
     }
   }
@@ -171,7 +173,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const refresh = store.get(AUTH_REFRESH_COOKIE)?.value;
   if (!refresh) return null;
 
-  const consumed = consumeRefreshToken(refresh, 'user');
+  const consumed = await consumeRefreshToken(refresh, 'user');
   if (!consumed) {
     // No limpiar cookies aquí: si dos peticiones consumieron el mismo refresh
     // en paralelo (carrera de rotación), la primera ya emitió una cookie nueva
@@ -206,12 +208,12 @@ export function getLockoutRemainingMs(user: {
 }
 
 /** Registra un intento fallido; al llegar a MAX_LOGIN_ATTEMPTS bloquea la cuenta. */
-export function applyFailedLoginAttempt(userId: string): void {
-  const user = getUserRepo().findById(userId);
+export async function applyFailedLoginAttempt(userId: string): Promise<void> {
+  const user = await getUserRepo().findById(userId);
   if (!user) return;
   const attempts = (user.failedLoginAttempts ?? 0) + 1;
   const locked = attempts >= MAX_LOGIN_ATTEMPTS;
-  getUserRepo().update(userId, {
+  await getUserRepo().update(userId, {
     failedLoginAttempts: attempts,
     ...(locked
       ? { lockoutUntil: new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString() }
@@ -220,6 +222,6 @@ export function applyFailedLoginAttempt(userId: string): void {
 }
 
 /** Reinicia el contador de intentos tras un login exitoso. */
-export function resetLoginAttempts(userId: string): void {
-  getUserRepo().update(userId, { failedLoginAttempts: 0, lockoutUntil: undefined });
+export async function resetLoginAttempts(userId: string): Promise<void> {
+  await getUserRepo().update(userId, { failedLoginAttempts: 0, lockoutUntil: undefined });
 }

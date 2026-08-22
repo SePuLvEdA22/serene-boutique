@@ -26,7 +26,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     const { id } = await params;
-    const deleted = getSubscriberRepo().delete(id);
+    const deleted = await getSubscriberRepo().delete(id);
 
     if (!deleted) {
       return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });

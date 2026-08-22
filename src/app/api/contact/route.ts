@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       read: false,
     };
 
-    db.contacts.set([...db.contacts.get(), contact]);
+    db.contacts.set([...(await db.contacts.get()), contact]);
     console.log('[Contacto] Mensaje recibido:', contact.email);
 
     return NextResponse.json(

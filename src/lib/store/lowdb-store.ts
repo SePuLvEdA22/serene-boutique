@@ -37,20 +37,20 @@ export class LowdbStore implements DataStore {
     try { this.db.write(); } catch { /* file write error */ }
   }
 
-  getUsers(): StoreUser[] { return this.db.data.users; }
-  setUsers(users: StoreUser[]): void { this.db.data.users = users; this.persist(); }
-  getProducts(): Product[] { return this.db.data.products; }
-  setProducts(products: Product[]): void { this.db.data.products = products; this.persist(); }
-  getOrders(): StoreOrder[] { return this.db.data.orders; }
-  setOrders(orders: StoreOrder[]): void { this.db.data.orders = orders; this.persist(); }
-  getContacts(): Contact[] { return this.db.data.contacts; }
-  setContacts(contacts: Contact[]): void { this.db.data.contacts = contacts; this.persist(); }
-  getSubscribers(): Subscriber[] { return this.db.data.subscribers; }
-  setSubscribers(subscribers: Subscriber[]): void { this.db.data.subscribers = subscribers; this.persist(); }
-  getSettings(): StoreSettings { return this.db.data.settings; }
-  setSettings(settings: StoreSettings): void { this.db.data.settings = settings; this.persist(); }
-  getPromos(): StorePromo[] { return this.db.data.promos; }
-  setPromos(promos: StorePromo[]): void { this.db.data.promos = promos; this.persist(); }
+  async getUsers(): Promise<StoreUser[]> { return this.db.data.users; }
+  async setUsers(users: StoreUser[]): Promise<void> { this.db.data.users = users; this.persist(); }
+  async getProducts(): Promise<Product[]> { return this.db.data.products; }
+  async setProducts(products: Product[]): Promise<void> { this.db.data.products = products; this.persist(); }
+  async getOrders(): Promise<StoreOrder[]> { return this.db.data.orders; }
+  async setOrders(orders: StoreOrder[]): Promise<void> { this.db.data.orders = orders; this.persist(); }
+  async getContacts(): Promise<Contact[]> { return this.db.data.contacts; }
+  async setContacts(contacts: Contact[]): Promise<void> { this.db.data.contacts = contacts; this.persist(); }
+  async getSubscribers(): Promise<Subscriber[]> { return this.db.data.subscribers; }
+  async setSubscribers(subscribers: Subscriber[]): Promise<void> { this.db.data.subscribers = subscribers; this.persist(); }
+  async getSettings(): Promise<StoreSettings> { return this.db.data.settings; }
+  async setSettings(settings: StoreSettings): Promise<void> { this.db.data.settings = settings; this.persist(); }
+  async getPromos(): Promise<StorePromo[]> { return this.db.data.promos; }
+  async setPromos(promos: StorePromo[]): Promise<void> { this.db.data.promos = promos; this.persist(); }
   getAdminInitialized(): boolean { return this._adminInitialized; }
   setAdminInitialized(val: boolean): void { this._adminInitialized = val; }
 }

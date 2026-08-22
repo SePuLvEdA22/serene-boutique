@@ -35,8 +35,8 @@ export async function DELETE(request: Request) {
   const cookieHeader = request.headers.get('cookie');
   const adminRefresh = cookieValue(cookieHeader, 'admin-refresh');
   const userRefresh = cookieValue(cookieHeader, 'auth-refresh');
-  if (adminRefresh) revokeRefreshToken(adminRefresh);
-  if (userRefresh) revokeRefreshToken(userRefresh);
+  if (adminRefresh) await revokeRefreshToken(adminRefresh);
+  if (userRefresh) await revokeRefreshToken(userRefresh);
 
   const response = NextResponse.json({ message: 'Sesión cerrada' });
   response.cookies.set('admin-token', '', { maxAge: 0, path: '/' });
@@ -47,7 +47,7 @@ export async function DELETE(request: Request) {
 }
 
 export async function POST(request: Request) {
-  ensureAdminUser();
+  await ensureAdminUser();
 
   const blocked = csrfBlocked(request);
   if (blocked) return blocked;
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     const { email, password } = parsed.data;
-    const user = getUserRepo().findByEmail(email);
+    const user = await getUserRepo().findByEmail(email);
 
     if (user && getLockoutRemainingMs(user) > 0) {
       return NextResponse.json(
@@ -85,14 +85,14 @@ export async function POST(request: Request) {
     }
 
     if (!user?.isAdmin || !bcrypt.compareSync(password, user.password)) {
-      if (user) applyFailedLoginAttempt(user.id);
+      if (user) await applyFailedLoginAttempt(user.id);
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    resetLoginAttempts(user.id);
+    await resetLoginAttempts(user.id);
 
     const token = await signAdminToken(user.id);
-    const refreshToken = issueRefreshToken(user.id, 'admin');
+    const refreshToken = await issueRefreshToken(user.id, 'admin');
 
     const cookieStore = await cookies();
     const secure = process.env.NODE_ENV === 'production';

@@ -4,7 +4,7 @@ import type { Product } from '@/lib/models';
 
 export type { StoreUser, StoreOrder, Contact, Subscriber, StoreSettings, StorePromo };
 
-function collection<T>(get: () => T[], set: (v: T[]) => void) {
+function collection<T>(get: () => Promise<T[]>, set: (v: T[]) => Promise<void>) {
   return { get, set };
 }
 
@@ -32,11 +32,11 @@ function getStoreInstance() {
       (v) => s.setSubscribers(v),
     ),
     settings: {
-      get(): StoreSettings {
+      get(): Promise<StoreSettings> {
         return s.getSettings();
       },
-      set(v: StoreSettings) {
-        s.setSettings(v);
+      set(v: StoreSettings): Promise<void> {
+        return s.setSettings(v);
       },
     },
     promos: collection<StorePromo>(

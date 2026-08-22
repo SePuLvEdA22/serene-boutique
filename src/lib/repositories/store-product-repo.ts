@@ -3,21 +3,24 @@ import type { IProductRepository } from './interfaces';
 import { db } from '@/lib/db';
 
 export class StoreProductRepository implements IProductRepository {
-  findAll(): Product[] {
+  async findAll(): Promise<Product[]> {
     return db.products.get();
   }
 
-  findById(id: string): Product | undefined {
-    return db.products.get().find(p => p.id === id);
+  async findById(id: string): Promise<Product | undefined> {
+    const products = await db.products.get();
+    return products.find(p => p.id === id);
   }
 
-  findByCategory(category: Category): Product[] {
-    return db.products.get().filter(p => p.category === category);
+  async findByCategory(category: Category): Promise<Product[]> {
+    const products = await db.products.get();
+    return products.filter(p => p.category === category);
   }
 
-  search(query: string): Product[] {
+  async search(query: string): Promise<Product[]> {
     const q = query.toLowerCase();
-    return db.products.get().filter(
+    const products = await db.products.get();
+    return products.filter(
       p =>
         p.name.toLowerCase().includes(q) ||
         p.description.toLowerCase().includes(q) ||
@@ -25,30 +28,32 @@ export class StoreProductRepository implements IProductRepository {
     );
   }
 
-  getFeatured(): Product[] {
-    return db.products.get().filter(p => p.featured);
+  async getFeatured(): Promise<Product[]> {
+    const products = await db.products.get();
+    return products.filter(p => p.featured);
   }
 
-  create(product: Product): void {
-    db.products.set([...db.products.get(), product]);
+  async create(product: Product): Promise<void> {
+    const products = await db.products.get();
+    await db.products.set([...products, product]);
   }
 
-  update(id: string, data: Partial<Product>): Product | undefined {
-    const list = db.products.get();
+  async update(id: string, data: Partial<Product>): Promise<Product | undefined> {
+    const list = await db.products.get();
     const index = list.findIndex(p => p.id === id);
     if (index === -1) return undefined;
     const updated = { ...list[index], ...data };
     list[index] = updated;
-    db.products.set(list);
+    await db.products.set(list);
     return updated;
   }
 
-  delete(id: string): boolean {
-    const list = db.products.get();
+  async delete(id: string): Promise<boolean> {
+    const list = await db.products.get();
     const index = list.findIndex(p => p.id === id);
     if (index === -1) return false;
     list.splice(index, 1);
-    db.products.set(list);
+    await db.products.set(list);
     return true;
   }
 }

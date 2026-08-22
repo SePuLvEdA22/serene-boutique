@@ -38,7 +38,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Valor de read inválido' }, { status: 400 });
     }
 
-    const updated = getContactRepo().markRead(id, parsed.data.read);
+    const updated = await getContactRepo().markRead(id, parsed.data.read);
 
     if (!updated) {
       return NextResponse.json({ error: 'Mensaje no encontrado' }, { status: 404 });
@@ -72,7 +72,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     const { id } = await params;
-    const deleted = getContactRepo().delete(id);
+    const deleted = await getContactRepo().delete(id);
 
     if (!deleted) {
       return NextResponse.json({ error: 'Mensaje no encontrado' }, { status: 404 });

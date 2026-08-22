@@ -3,47 +3,50 @@ import type { IOrderRepository } from './interfaces';
 import { db } from '@/lib/db';
 
 export class StoreOrderRepository implements IOrderRepository {
-  findAll(): Order[] {
+  async findAll(): Promise<Order[]> {
     return db.orders.get();
   }
 
-  findById(id: string): Order | undefined {
-    return db.orders.get().find(o => o.id === id);
+  async findById(id: string): Promise<Order | undefined> {
+    const orders = await db.orders.get();
+    return orders.find(o => o.id === id);
   }
 
-  findByUser(userId: string): Order[] {
-    return db.orders.get().filter(o => o.userId === userId);
+  async findByUser(userId: string): Promise<Order[]> {
+    const orders = await db.orders.get();
+    return orders.filter(o => o.userId === userId);
   }
 
-  create(order: Order): void {
-    db.orders.set([...db.orders.get(), order]);
+  async create(order: Order): Promise<void> {
+    const orders = await db.orders.get();
+    await db.orders.set([...orders, order]);
   }
 
-  updateStatus(id: string, status: OrderStatus): Order | undefined {
-    const list = db.orders.get();
+  async updateStatus(id: string, status: OrderStatus): Promise<Order | undefined> {
+    const list = await db.orders.get();
     const index = list.findIndex(o => o.id === id);
     if (index === -1) return undefined;
     list[index] = { ...list[index], status };
-    db.orders.set(list);
+    await db.orders.set(list);
     return list[index];
   }
 
-  update(id: string, data: Partial<Order>): Order | undefined {
-    const list = db.orders.get();
+  async update(id: string, data: Partial<Order>): Promise<Order | undefined> {
+    const list = await db.orders.get();
     const index = list.findIndex(o => o.id === id);
     if (index === -1) return undefined;
     const updated = { ...list[index], ...data };
     list[index] = updated;
-    db.orders.set(list);
+    await db.orders.set(list);
     return updated;
   }
 
-  delete(id: string): boolean {
-    const list = db.orders.get();
+  async delete(id: string): Promise<boolean> {
+    const list = await db.orders.get();
     const index = list.findIndex(o => o.id === id);
     if (index === -1) return false;
     list.splice(index, 1);
-    db.orders.set(list);
+    await db.orders.set(list);
     return true;
   }
 }

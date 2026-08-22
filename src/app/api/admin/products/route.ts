@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  return NextResponse.json({ products: getProductRepo().findAll() });
+  return NextResponse.json({ products: await getProductRepo().findAll() });
 }
 
 export async function POST(request: Request) {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       .replace(/--+/g, '-')
       .replace(/^-|-$/g, '');
 
-    if (getProductRepo().findById(id)) {
+    if (await getProductRepo().findById(id)) {
       return NextResponse.json({ error: 'Ya existe un producto con ese ID' }, { status: 409 });
     }
 
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Datos de producto inválidos' }, { status: 400 });
     }
 
-    getProductRepo().create(parsed.data);
+    await getProductRepo().create(parsed.data);
 
     return NextResponse.json({ product: parsed.data }, { status: 201 });
   } catch {

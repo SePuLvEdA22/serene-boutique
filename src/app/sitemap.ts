@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 import { getProductRepo } from '@/lib/repositories';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://switchandtech.com";
 
-  const products = getProductRepo().findAll().filter(p => p.active !== false);
+  const products = (await getProductRepo().findAll()).filter(p => p.active !== false);
 
   const productUrls = products.map((product) => ({
     url: `${baseUrl}/producto/${product.id}`,

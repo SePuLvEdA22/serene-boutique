@@ -97,7 +97,7 @@ describe('POST /api/auth/register — consentimiento explícito', () => {
     expect(res.status).toBe(201);
 
     const { db } = await import('@/lib/db');
-    const user = db.users.get().find((u) => u.email === 'ana@example.com');
+    const user = (await db.users.get()).find((u) => u.email === 'ana@example.com');
     expect(user).toBeDefined();
     expect(user!.consentAt).toBeTruthy();
     expect(user!.isAdmin).toBe(false);
@@ -121,7 +121,7 @@ describe('POST /api/newsletter — consentimiento explícito', () => {
     expect(res.status).toBe(200);
 
     const { db } = await import('@/lib/db');
-    const sub = db.subscribers.get().find((s) => s.email === 'news@example.com');
+    const sub = (await db.subscribers.get()).find((s) => s.email === 'news@example.com');
     expect(sub).toBeDefined();
     expect(sub!.consentAt).toBeTruthy();
   });

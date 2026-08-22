@@ -41,12 +41,12 @@ export async function PUT(request: Request) {
         );
       }
 
-      const user = getUserRepo().findById(session.id);
+      const user = await getUserRepo().findById(session.id);
       if (!user) {
         return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
       }
 
-      getUserRepo().update(session.id, { name: parsed.data.name });
+      await getUserRepo().update(session.id, { name: parsed.data.name });
 
       return NextResponse.json({
         user: { id: user.id, name: parsed.data.name, email: user.email },
@@ -63,7 +63,7 @@ export async function PUT(request: Request) {
         );
       }
 
-      const user = getUserRepo().findById(session.id);
+      const user = await getUserRepo().findById(session.id);
       if (!user) {
         return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
       }
@@ -76,7 +76,7 @@ export async function PUT(request: Request) {
       }
 
       const hashedPassword = bcrypt.hashSync(parsed.data.newPassword, 10);
-      getUserRepo().update(session.id, { password: hashedPassword });
+      await getUserRepo().update(session.id, { password: hashedPassword });
 
       return NextResponse.json({ message: 'Contraseña actualizada correctamente' });
     }
