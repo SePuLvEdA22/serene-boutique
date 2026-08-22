@@ -1,5 +1,26 @@
 import type { NextConfig } from "next";
 
+// CSP por entorno: 'unsafe-eval' solo en desarrollo (HMR de Turbopack lo
+// requiere). En producción se sirve una política más estricta.
+const isDev = process.env.NODE_ENV === "development";
+
+const scriptSrc = isDev
+  ? "'self' 'unsafe-eval' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com"
+  : "'self' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com";
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src ${scriptSrc}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self'",
+  "connect-src 'self' https://api.mercadopago.com",
+  "frame-src 'self' https://mercadopago.com https://*.mercadopago.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   // Raíz del repo: evita que Turbopack suba al directorio padre y encuentre
   // un pnpm-workspace.yaml ajeno al proyecto (warning de workspace externo).
@@ -21,6 +42,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Única fuente de verdad de security headers (Vercel los aplica igual;
+        // vercel.json no duplica nada para evitar drift).
         source: "/(.*)",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },
@@ -43,7 +66,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://api.mercadopago.com; frame-src 'self' https://mercadopago.com https://*.mercadopago.com; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: `${contentSecurityPolicy};`,
           },
         ],
       },
