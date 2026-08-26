@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { newsletterSchema } from '@/lib/validation';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
@@ -43,12 +44,11 @@ export async function POST(request: Request) {
 
     // Ley 1581: registrar el consentimiento explícito al newsletter.
     await getSubscriberRepo().create({
-      id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `sub-${randomUUID()}`,
       email,
       subscribedAt: new Date().toISOString(),
       consentAt: consent ? new Date().toISOString() : undefined,
     });
-    console.log('[Newsletter] Nuevo suscriptor:', email);
 
     return NextResponse.json(
       { message: 'Suscripción exitosa' },

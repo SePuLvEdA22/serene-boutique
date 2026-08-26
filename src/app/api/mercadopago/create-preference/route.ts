@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOrderRepo, getPromoRepo } from '@/lib/repositories';
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
     const orderTotal = validated.total - discount;
 
     // Crear orden en estado "pending" con información de pago
-    const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const orderId = `ORD-${randomUUID()}`;
 
     // La URL base para back_urls y notification_url: usar el origen real del
     // request (dominio desplegado) y, si no viene, derivarlo de la URL del request.

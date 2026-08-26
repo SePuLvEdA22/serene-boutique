@@ -24,7 +24,9 @@ export async function GET() {
     );
 
     return NextResponse.json({ orders });
-  } catch {
-    return NextResponse.json({ orders: [] });
+  } catch (err) {
+    // No enmascarar fallos como "sin órdenes": el cliente debe saber que hubo error.
+    console.error('[API Orders] Error al listar órdenes:', err);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

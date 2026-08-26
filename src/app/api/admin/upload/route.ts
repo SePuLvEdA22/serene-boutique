@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    const name = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${EXT_BY_TYPE[file.type]}`;
+    const name = `img-${randomUUID()}.${EXT_BY_TYPE[file.type]}`;
     const url = await saveImage(name, bytes, file.type);
 
     return NextResponse.json({ url }, { status: 201 });

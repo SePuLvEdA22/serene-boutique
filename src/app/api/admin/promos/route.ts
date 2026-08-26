@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { PromoSchema } from '@/lib/models/promo';
 import { getPromoRepo } from '@/lib/repositories';
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     const promo = {
       ...parsed.data,
       code,
-      id: `promo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `promo-${randomUUID()}`,
       createdAt: new Date().toISOString(),
       usedCount: 0,
     };

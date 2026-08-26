@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = `user_${randomUUID()}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
     await getUserRepo().create({
       id,

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { contactSchema } from '@/lib/validation';
 import { checkRouteRateLimit } from '@/lib/rate-limit';
@@ -32,12 +33,11 @@ export async function POST(request: Request) {
     }
 
     await getContactRepo().create({
-      id: `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `contact-${randomUUID()}`,
       ...parsed.data,
       createdAt: new Date().toISOString(),
       read: false,
     });
-    console.log('[Contacto] Mensaje recibido:', parsed.data.email);
 
     return NextResponse.json(
       { message: 'Mensaje enviado correctamente' },
