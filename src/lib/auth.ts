@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
+import { SignJWT, jwtVerify, errors as joseErrors, type JWTPayload } from 'jose';
 
 /**
  * Secreto de firma de JWT.
@@ -114,4 +114,46 @@ export async function verifyAdminToken(
   } catch {
     return null;
   }
+}
+
+/**
+ * Estado de un access token sin tratar expiración como invalidez:
+ * - 'valid'   → firma y vigencia correctas.
+ * - 'expired' → firma correcta pero vencido (la sesión puede renovarse con
+ *               el refresh token; NO debe tratarse como cookie falsificada).
+ * - 'invalid' → firma inválida, formato incorrecto o claims ausentes.
+ *
+ * Lo consume el proxy para decidir bloqueos sin tocar la base de datos:
+ * una cookie basura se bloquea en la puerta, un token vencido deja pasar
+ * la petición para que `requireAdmin()`/`getSessionUser()` lo renueven.
+ */
+export type TokenState = 'valid' | 'expired' | 'invalid';
+
+async function inspectToken(
+  token: string,
+  audience: string,
+  hasRequiredClaims: (payload: JWTPayload) => boolean
+): Promise<TokenState> {
+  try {
+    const { payload } = await jwtVerify(token, SECRET, {
+      issuer: ISSUER,
+      audience,
+    });
+    return hasRequiredClaims(payload) ? 'valid' : 'invalid';
+  } catch (err) {
+    if (err instanceof joseErrors.JWTExpired) return 'expired';
+    return 'invalid';
+  }
+}
+
+export function inspectUserTokenState(token: string): Promise<TokenState> {
+  return inspectToken(token, AUDIENCE, (p) => Boolean(p.id && p.email));
+}
+
+export function inspectAdminTokenState(token: string): Promise<TokenState> {
+  return inspectToken(
+    token,
+    'switch-and-tech-admin',
+    (p) => Boolean(p.userId)
+  );
 }
