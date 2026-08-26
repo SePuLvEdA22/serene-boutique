@@ -18,6 +18,8 @@ function defaultData(): StoreData {
 export class MemoryStore implements DataStore {
   private data: StoreData;
   private _adminInitialized = false;
+  /** Serializa los incrementos atómicos de cupones dentro del proceso. */
+  private promoMutex: Promise<unknown> = Promise.resolve();
 
   constructor() {
     const g = globalThis as Record<string, unknown>;
@@ -44,6 +46,28 @@ export class MemoryStore implements DataStore {
   async setSettings(settings: StoreSettings): Promise<void> { this.data.settings = settings; }
   async getPromos(): Promise<StorePromo[]> { return this.data.promos; }
   async setPromos(promos: StorePromo[]): Promise<void> { this.data.promos = promos; }
+
+  /**
+   * Incremento atómico con guard de `usageLimit`. El mutex de promesa
+   * encadenada serializa las llamadas concurrentes dentro del proceso:
+   * el segundo checkout ve el `usedCount` ya incrementado por el primero.
+   */
+  tryIncrementPromoUsage(id: string): Promise<StorePromo | undefined> {
+    const run = this.promoMutex.then((): StorePromo | undefined => {
+      const promo = this.data.promos.find((p) => p.id === id);
+      if (!promo) return undefined;
+      if (promo.usageLimit !== undefined && (promo.usedCount ?? 0) >= promo.usageLimit) {
+        return undefined;
+      }
+      const updated: StorePromo = { ...promo, usedCount: (promo.usedCount ?? 0) + 1 };
+      this.data.promos = this.data.promos.map((p) => (p.id === id ? updated : p));
+      return updated;
+    });
+    // El mutex nunca queda rechazado: un fallo no bloquea los siguientes.
+    this.promoMutex = run.catch(() => undefined);
+    return run;
+  }
+
   getAdminInitialized(): boolean { return this._adminInitialized; }
   setAdminInitialized(val: boolean): void { this._adminInitialized = val; }
 }

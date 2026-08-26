@@ -69,3 +69,45 @@ describe('db orders', () => {
     expect((await db2.orders.get())[0].id).toBe('ORD-1');
   });
 });
+
+describe('incremento atómico de cupones (driver memoria)', () => {
+  it('no_supera_el_usageLimit_aunque_lleguen_incrementos_concurrentes', async () => {
+    const { db } = await import('@/lib/db');
+    const { getPromoRepo } = await import('@/lib/repositories');
+
+    await db.promos.set([
+      {
+        id: 'promo-limit',
+        code: 'LIMITADO',
+        type: 'percent',
+        value: 10,
+        minOrder: 0,
+        active: true,
+        usageLimit: 2,
+        usedCount: 0,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    // 5 checkouts simultáneos compiten por 2 usos disponibles
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => getPromoRepo().tryIncrementUsage('promo-limit'))
+    );
+
+    const applied = results.filter((r) => r !== undefined);
+    expect(applied).toHaveLength(2);
+    // Cada retorno refleja el contador tras SU incremento: 1 y luego 2
+    expect(applied.map((r) => r!.usedCount).sort()).toEqual([1, 2]);
+
+    const final = (await db.promos.get()).find((p) => p.id === 'promo-limit');
+    expect(final!.usedCount).toBe(2);
+
+    // Un intento posterior tampoco pasa
+    expect(await getPromoRepo().tryIncrementUsage('promo-limit')).toBeUndefined();
+  });
+
+  it('devuelve_undefined_si_el_cupón_no_existe', async () => {
+    const { getPromoRepo } = await import('@/lib/repositories');
+    expect(await getPromoRepo().tryIncrementUsage('fantasma')).toBeUndefined();
+  });
+});

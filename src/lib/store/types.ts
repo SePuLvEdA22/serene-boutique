@@ -41,6 +41,15 @@ export interface DataStore {
   setSettings(settings: Settings): Promise<void>;
   getPromos(): Promise<Promo[]>;
   setPromos(promos: Promo[]): Promise<void>;
+  /**
+   * Incremento ATÓMICO del contador de usos de un cupón, respetando su
+   * `usageLimit`. Devuelve el cupón actualizado si el incremento se aplicó;
+   * `undefined` si el cupón no existe o agotó su límite.
+   *
+   * Evita la carrera get→mutar→set de `setPromos` en la que dos checkouts
+   * simultáneos podían superar el límite de usos.
+   */
+  tryIncrementPromoUsage(id: string): Promise<Promo | undefined>;
   getAdminInitialized(): boolean;
   setAdminInitialized(val: boolean): void;
 }

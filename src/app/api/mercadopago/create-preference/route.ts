@@ -108,7 +108,17 @@ export async function POST(request: Request) {
       }
       discount = coupon.discount ?? 0;
       promoId = coupon.promo?.id;
-      if (promoId) await getPromoRepo().incrementUsage(promoId);
+      // Incremento atómico: si otro checkout consumió el último uso entre la
+      // validación y este punto, el guard del store lo rechaza (undefined).
+      if (promoId) {
+        const applied = await getPromoRepo().tryIncrementUsage(promoId);
+        if (!applied) {
+          return NextResponse.json(
+            { error: 'Este cupón alcanzó su límite de usos' },
+            { status: 409 }
+          );
+        }
+      }
     }
 
     const orderTotal = validated.total - discount;

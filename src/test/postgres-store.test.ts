@@ -303,3 +303,51 @@ describe('reemplazo de colecciones vacías', () => {
     expect(store.getAdminInitialized()).toBe(true);
   });
 });
+
+describe('PostgresStore.tryIncrementPromoUsage', () => {
+  const promoRow: Row = {
+    id: 'promo-1',
+    code: 'BIENVENIDA10',
+    type: 'percent',
+    value: '10',
+    min_order: '0',
+    active: true,
+    usage_limit: '2',
+    used_count: '1',
+    expires_at: null,
+    created_at: '2026-01-01T00:00:00.000Z',
+  };
+
+  it('debería_usar_un_UPDATE_atómico_con_guard_de_límite_y_RETURNING', async () => {
+    const mock = makeMockClient([[promoRow]]);
+    const store = new PostgresStore(mock.client);
+
+    const updated = await store.tryIncrementPromoUsage('promo-1');
+
+    expect(mock.queries).toHaveLength(1);
+    const text = mock.queries[0].text;
+    // El guard de límite vive en el WHERE (no hay carrera posible)
+    expect(text).toContain('used_count = used_count + 1');
+    expect(text).toContain('usage_limit IS NULL OR used_count < usage_limit');
+    expect(text).toContain('RETURNING *');
+    expect(mock.queries[0].params).toEqual(['promo-1']);
+    expect(updated).toBeDefined();
+    expect(updated!.usedCount).toBe(1);
+  });
+
+  it('debería_devolver_undefined_cuando_el_guard_rechaza_(límite_agotado)', async () => {
+    // Sin RETURNING rows → el UPDATE no tocó ninguna fila
+    const mock = makeMockClient([[]]);
+    const store = new PostgresStore(mock.client);
+
+    const result = await store.tryIncrementPromoUsage('promo-1');
+
+    expect(result).toBeUndefined();
+  });
+
+  it('debería_devolver_undefined_cuando_el_cupón_no_existe', async () => {
+    const mock = makeMockClient([[]]);
+    const store = new PostgresStore(mock.client);
+    expect(await store.tryIncrementPromoUsage('no-existe')).toBeUndefined();
+  });
+});

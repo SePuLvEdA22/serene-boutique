@@ -47,6 +47,11 @@ export async function validateOrderItems(
   const items: ValidatedOrderItem[] = [];
   const errors: string[] = [];
 
+  // Cargar el catálogo UNA sola vez (no un findById por ítem: cada consulta
+  // lee la colección completa, O(n) por línea del carrito).
+  const products = await getProductRepo().findAll();
+  const byId = new Map(products.map((p) => [p.id, p]));
+
   for (const candidate of input) {
     const clientPrice = candidate.price ?? candidate.unit_price;
 
@@ -65,7 +70,7 @@ export async function validateOrderItems(
       continue;
     }
 
-    const product = await getProductRepo().findById(candidate.productId);
+    const product = byId.get(candidate.productId);
     if (!product) {
       errors.push('Producto no encontrado');
       continue;

@@ -39,10 +39,18 @@ function getStoreInstance() {
         return s.setSettings(v);
       },
     },
-    promos: collection<StorePromo>(
-      () => s.getPromos(),
-      (v) => s.setPromos(v),
-    ),
+    promos: {
+      get(): Promise<StorePromo[]> {
+        return s.getPromos();
+      },
+      set(v: StorePromo[]): Promise<void> {
+        return s.setPromos(v);
+      },
+      /** Incremento atómico con guard de usageLimit (delega en el driver). */
+      tryIncrement(id: string): Promise<StorePromo | undefined> {
+        return s.tryIncrementPromoUsage(id);
+      },
+    },
     get adminInitialized(): boolean {
       return s.getAdminInitialized();
     },

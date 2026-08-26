@@ -62,6 +62,10 @@ export interface IPromoRepository {
   create(promo: Promo): Promise<void>;
   update(id: string, data: Partial<Promo>): Promise<Promo | undefined>;
   delete(id: string): Promise<boolean>;
-  /** Registra un uso del cupón y devuelve el cupón actualizado. */
-  incrementUsage(id: string): Promise<Promo | undefined>;
+  /**
+   * Registra un uso del cupón de forma atómica respetando `usageLimit`.
+   * Devuelve el cupón actualizado, o `undefined` si no existe o agotó su
+   * límite (el llamador NO debe aplicar el descuento en ese caso).
+   */
+  tryIncrementUsage(id: string): Promise<Promo | undefined>;
 }

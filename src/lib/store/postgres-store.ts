@@ -239,6 +239,22 @@ ON CONFLICT (id) DO UPDATE SET
   min_order = EXCLUDED.min_order, active = EXCLUDED.active, usage_limit = EXCLUDED.usage_limit,
   used_count = EXCLUDED.used_count, expires_at = EXCLUDED.expires_at, created_at = EXCLUDED.created_at`;
 
+/** Mapea una fila de `promos` al modelo (compartido por getPromos e incrementos atómicos). */
+function promoFromRow(row: Row): StorePromo {
+  return {
+    id: String(row.id),
+    code: String(row.code),
+    type: row.type === 'fixed' ? ('fixed' as const) : ('percent' as const),
+    value: toNum(row.value) ?? 0,
+    minOrder: toNum(row.min_order) ?? 0,
+    active: row.active !== false,
+    usageLimit: toNum(row.usage_limit),
+    usedCount: toNum(row.used_count) ?? 0,
+    expiresAt: toIso(row.expires_at),
+    createdAt: toIso(row.created_at) ?? nowIso(),
+  };
+}
+
 /* ------------------------------- el store ------------------------------- */
 
 /**
@@ -248,6 +264,11 @@ ON CONFLICT (id) DO UPDATE SET
  * así que los repositorios no cambian su lógica: cada `setX(lista)` hace un
  * UPSERT de toda la lista + DELETE de las filas ausentes, todo en una
  * transacción atómica.
+ *
+ * DEUDA CONOCIDA: esta semántica reescribe la tabla completa por mutación
+ * (O(n) writes por cambio). Las operaciones críticas de concurrencia (cupones)
+ * usan `tryIncrementPromoUsage`, un UPDATE dirigido y atómico. El siguiente
+ * paso natural sería migrar el resto a updates/upserts por fila.
  */
 export class PostgresStore implements DataStore {
   private client: SqlClient;
@@ -491,18 +512,7 @@ export class PostgresStore implements DataStore {
 
   async getPromos(): Promise<StorePromo[]> {
     const rows = await this.client.query('SELECT * FROM promos ORDER BY created_at ASC, id ASC');
-    return rows.map((row) => ({
-      id: String(row.id),
-      code: String(row.code),
-      type: row.type === 'fixed' ? ('fixed' as const) : ('percent' as const),
-      value: toNum(row.value) ?? 0,
-      minOrder: toNum(row.min_order) ?? 0,
-      active: row.active !== false,
-      usageLimit: toNum(row.usage_limit),
-      usedCount: toNum(row.used_count) ?? 0,
-      expiresAt: toIso(row.expires_at),
-      createdAt: toIso(row.created_at) ?? nowIso(),
-    }));
+    return rows.map(promoFromRow);
   }
 
   async setPromos(promos: StorePromo[]): Promise<void> {
@@ -516,6 +526,22 @@ export class PostgresStore implements DataStore {
           ]
         : [];
     await this.syncTable(upserts, [deleteMissingById('promos', promos.map((p) => p.id))]);
+  }
+
+  /**
+   * Incremento atómico a nivel SQL: el guard de `usage_limit` vive en la
+   * cláusula WHERE, así que dos transacciones concurrentes no pueden superar
+   * el límite (Postgres serializa el UPDATE sobre la fila).
+   */
+  async tryIncrementPromoUsage(id: string): Promise<StorePromo | undefined> {
+    const rows = await this.client.query(
+      `UPDATE promos SET used_count = used_count + 1
+       WHERE id = $1 AND (usage_limit IS NULL OR used_count < usage_limit)
+       RETURNING *`,
+      [id]
+    );
+    const row = rows[0];
+    return row ? promoFromRow(row) : undefined;
   }
 
   /* ---- bandera de inicialización del admin ---- */

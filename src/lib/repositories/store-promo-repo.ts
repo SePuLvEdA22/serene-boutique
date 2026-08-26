@@ -40,12 +40,12 @@ export class StorePromoRepository implements IPromoRepository {
     return true;
   }
 
-  async incrementUsage(id: string): Promise<Promo | undefined> {
-    const promos = await db.promos.get();
-    const target = promos.find((p) => p.id === id);
-    if (!target) return undefined;
-    const updated = { ...target, usedCount: (target.usedCount ?? 0) + 1 };
-    await db.promos.set(promos.map((p) => (p.id === id ? updated : p)));
-    return updated;
+  /**
+   * Delega en el incremento atómico del store (SQL con guard de límite en
+   * Postgres, mutex de promesa en lowdb/memory): dos checkouts concurrentes
+   * nunca superan `usageLimit`.
+   */
+  tryIncrementUsage(id: string): Promise<Promo | undefined> {
+    return db.promos.tryIncrement(id);
   }
 }
