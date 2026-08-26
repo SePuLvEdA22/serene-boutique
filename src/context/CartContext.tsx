@@ -31,7 +31,8 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-function cartReducer(state: CartState, action: CartAction): CartState {
+/** Reducer puro del carrito, exportado para pruebas unitarias. */
+export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
       const { product, quantity = 1, selectedColor } = action.payload;
