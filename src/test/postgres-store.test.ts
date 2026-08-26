@@ -121,6 +121,7 @@ describe('PostgresStore.setUsers', () => {
     expect(tokenUpsert!.params).toEqual([
       'a'.repeat(64), 'admin', 'u-1',
       '2026-12-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z',
+      null, // used_at (marca de reuso)
     ]);
     // Limpieza selectiva por hash, no total
     const staleDelete = mock.queries.find((q) => q.text.includes('DELETE FROM refresh_tokens'));

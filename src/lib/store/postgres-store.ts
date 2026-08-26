@@ -127,15 +127,16 @@ ON CONFLICT (id) DO UPDATE SET
   created_at = EXCLUDED.created_at`;
 
 function tokenToParams(userId: string, t: NonNullable<User['refreshTokens']>[number]): unknown[] {
-  return [t.hash, t.kind, userId, t.expiresAt, t.createdAt];
+  return [t.hash, t.kind, userId, t.expiresAt, t.createdAt, t.usedAt ?? null];
 }
 // prettier-ignore
 const UPSERT_TOKENS = `
-INSERT INTO refresh_tokens (hash, kind, user_id, expires_at, created_at)
+INSERT INTO refresh_tokens (hash, kind, user_id, expires_at, created_at, used_at)
 VALUES @VALUES@
 ON CONFLICT (hash) DO UPDATE SET
   user_id = EXCLUDED.user_id, kind = EXCLUDED.kind,
-  expires_at = EXCLUDED.expires_at, created_at = EXCLUDED.created_at`;
+  expires_at = EXCLUDED.expires_at, created_at = EXCLUDED.created_at,
+  used_at = EXCLUDED.used_at`;
 
 function productToParams(p: Product): unknown[] {
   return [
@@ -307,6 +308,7 @@ export class PostgresStore implements DataStore {
         kind: t.kind === 'admin' ? 'admin' : 'user',
         expiresAt: toIso(t.expires_at) ?? nowIso(),
         createdAt: toIso(t.created_at) ?? nowIso(),
+        usedAt: toIso(t.used_at),
       });
       tokensByUser.set(userId, list);
     }
@@ -340,7 +342,7 @@ export class PostgresStore implements DataStore {
     );
     if (allTokens.length > 0) {
       tokenRows.push({
-        text: UPSERT_TOKENS.replace('@VALUES@', valueGroups(allTokens.length, 5).join(', ')),
+        text: UPSERT_TOKENS.replace('@VALUES@', valueGroups(allTokens.length, 6).join(', ')),
         params: allTokens.flatMap(({ userId, token }) => tokenToParams(userId, token)),
       });
     }

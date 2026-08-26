@@ -28,8 +28,13 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   hash       TEXT NOT NULL UNIQUE,
   kind       TEXT NOT NULL CHECK (kind IN ('user', 'admin')),
   expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Marca de rotación: detecta reuso de tokens ya canjeados (robo de sesión)
+  used_at    TIMESTAMPTZ
 );
+
+-- Migraciones incrementales (idempotentes) para despliegues previos
+ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ;
 
 -- Productos (src/lib/models/product.ts)
 CREATE TABLE IF NOT EXISTS products (

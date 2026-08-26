@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 import { getUserRepo } from '@/lib/repositories';
 import { resetStore } from '@/lib/store';
+import { hashRefreshToken } from '@/lib/auth';
 import {
   issueRefreshToken,
   consumeRefreshToken,
@@ -104,6 +105,68 @@ describe('refresh tokens con rotación', () => {
   it('debería_ignorar_tokens_que_no_existen', async () => {
     expect(await consumeRefreshToken('token-inexistente', 'user')).toBeNull();
     await expect(revokeRefreshToken('token-inexistente')).resolves.toBeUndefined();
+  });
+});
+
+describe('detección de reuso de refresh tokens', () => {
+  it('no_revoca_por_doble_consumo_dentro_de_la_ventana_de_gracia', async () => {
+    await seedUser('u-grace', 'grace@example.com');
+    const t1 = await issueRefreshToken('u-grace', 'user');
+    // Segunda sesión activa (otro dispositivo/pestaña)
+    const tOther = await issueRefreshToken('u-grace', 'user');
+    expect(tOther).not.toBe(t1);
+
+    const c1 = await consumeRefreshToken(t1, 'user');
+    expect(c1).not.toBeNull();
+
+    // Reuso inmediato: carrera de rotación paralela → se rechaza sin revocar
+    expect(await consumeRefreshToken(t1, 'user')).toBeNull();
+
+    // Las demás sesiones sobreviven intactas
+    const stored = (await getUserRepo().findById('u-grace'))!;
+    expect(
+      stored.refreshTokens?.some((e) => e.hash === hashRefreshToken(tOther))
+    ).toBe(true);
+    expect(await consumeRefreshToken(tOther, 'user')).not.toBeNull();
+  });
+
+  it('revoca_todas_las_sesiones_cuando_un_token_usado_se_presenta_tras_la_gracia', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await seedUser('u-theft', 'theft@example.com');
+    const t1 = await issueRefreshToken('u-theft', 'user');
+    const tOther = await issueRefreshToken('u-theft', 'user');
+
+    const c1 = await consumeRefreshToken(t1, 'user');
+    expect(c1).not.toBeNull();
+
+    // El "atacante" presenta el token canjeado mucho después de la gracia
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(Date.now() + 5 * 60 * 1000); // 5 min después
+      expect(await consumeRefreshToken(t1, 'user')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    // Se quemó TODA la familia de refresh tokens del usuario
+    const stored = (await getUserRepo().findById('u-theft'))!;
+    expect(stored.refreshTokens ?? []).toHaveLength(0);
+    expect(await consumeRefreshToken(c1!.newToken, 'user')).toBeNull();
+    expect(await consumeRefreshToken(tOther, 'user')).toBeNull();
+  });
+
+  it('retiene_la_marca_usedAt_al_rotar_para_poder_detectar_reuso', async () => {
+    await seedUser('u-mark', 'mark@example.com');
+
+    const t1 = await issueRefreshToken('u-mark', 'user');
+    await consumeRefreshToken(t1, 'user');
+
+    const stored = (await getUserRepo().findById('u-mark'))!;
+    const usedEntry = stored.refreshTokens?.find(
+      (e) => e.hash === hashRefreshToken(t1)
+    );
+    expect(usedEntry).toBeDefined();
+    expect(usedEntry!.usedAt).toBeDefined();
   });
 });
 

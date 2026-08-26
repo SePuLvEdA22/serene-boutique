@@ -4,12 +4,17 @@ import { z } from 'zod';
  * Sesión de refresh token almacenada en el servidor (solo el hash).
  * `kind` separa tokens de cliente de tokens de admin para que un token de
  * cliente jamás pueda usarse para renovar una sesión de administración.
+ *
+ * `usedAt`: marca de rotación. Un token consumido NO se borra de inmediato:
+ * queda retenido un tiempo con esta marca para detectar REUSO (señal clásica
+ * de robo de sesión) y revocar todas las sesiones del usuario.
  */
 export const RefreshTokenSchema = z.object({
   hash: z.string().min(1),
   kind: z.enum(['user', 'admin']),
   expiresAt: z.string(),
   createdAt: z.string(),
+  usedAt: z.string().optional(),
 });
 
 export const UserSchema = z.object({

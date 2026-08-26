@@ -32,6 +32,17 @@ export const ADMIN_REFRESH_COOKIE = 'admin-refresh';
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** Máximo de refresh tokens activos por tipo y usuario (control de rotación). */
 const MAX_REFRESH_TOKENS_PER_KIND = 5;
+/**
+ * Ventana de gracia ante reuso: dos consumos casi simultáneos del mismo token
+ * (carrera de rotación paralela, p. ej. varias pestañas) NO se consideran robo.
+ * Pasada la ventana, presentar un token ya usado ES señal de robo.
+ */
+export const REFRESH_REUSE_GRACE_MS = 60 * 1000;
+/**
+ * Retención de los hashes ya usados: mientras existan, presentarlos de nuevo
+ * dispara la revocación total. Acotada para que el array no crezca sin límite.
+ */
+const REFRESH_USED_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 export interface SessionUser {
   id: string;
@@ -46,10 +57,24 @@ function secureCookie(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-function activeRefreshEntries(user: User): RefreshToken[] {
-  return (user.refreshTokens ?? []).filter(
-    (t) => new Date(t.expiresAt).getTime() > Date.now()
-  );
+/**
+ * Entradas de refresh "vivas": no expiradas y, si están marcadas como usadas,
+ * aún dentro de la ventana de retención (sirven para detectar reuso).
+ */
+function liveRefreshEntries(user: User): RefreshToken[] {
+  const now = Date.now();
+  return (user.refreshTokens ?? []).filter((t) => {
+    if (new Date(t.expiresAt).getTime() <= now) return false;
+    if (t.usedAt && now - new Date(t.usedAt).getTime() > REFRESH_USED_RETENTION_MS) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/** Slots activos (sin marcar como usados) de un kind dado. */
+function activeSlots(entries: RefreshToken[], kind: RefreshTokenKind): RefreshToken[] {
+  return entries.filter((t) => t.kind === kind && !t.usedAt);
 }
 
 function refreshEntry(token: string, kind: RefreshTokenKind) {
@@ -66,10 +91,12 @@ export async function issueRefreshToken(userId: string, kind: RefreshTokenKind):
   const token = generateRefreshToken();
   const user = await getUserRepo().findById(userId);
   if (user) {
-    const activeOfKind = activeRefreshEntries(user).filter((t) => t.kind === kind);
+    const live = liveRefreshEntries(user);
+    // Las marcas de reuso retenidas se conservan (no cuentan como slots activos).
     await getUserRepo().update(userId, {
       refreshTokens: [
-        ...activeOfKind.slice(-(MAX_REFRESH_TOKENS_PER_KIND - 1)),
+        ...live.filter((t) => t.usedAt),
+        ...activeSlots(live, kind).slice(-(MAX_REFRESH_TOKENS_PER_KIND - 1)),
         refreshEntry(token, kind),
       ],
     });
@@ -80,6 +107,13 @@ export async function issueRefreshToken(userId: string, kind: RefreshTokenKind):
 /**
  * Consume un refresh token (rotación): invalida el usado y emite uno nuevo.
  * Devuelve `null` si el token no existe, expiró o no corresponde al `kind`.
+ *
+ * Detección de reuso (robo de sesión):
+ * - El token consumido queda retenido con la marca `usedAt`.
+ * - Si vuelve a presentarse fuera de la ventana de gracia, se asume robo y se
+ *   revocan TODOS los refresh tokens del usuario (todas sus sesiones mueren).
+ * - Dentro de la ventana es una carrera de rotación legítima (varias pestañas):
+ *   solo se rechaza el segundo consumo, sin revocar nada.
  */
 export async function consumeRefreshToken(
   token: string,
@@ -89,20 +123,52 @@ export async function consumeRefreshToken(
 
   const all = await getUserRepo().findAll();
   const user = all.find((u) =>
-    (u.refreshTokens ?? []).some(
-      (t) => t.kind === kind && t.hash === hash && new Date(t.expiresAt).getTime() > Date.now()
-    )
+    (u.refreshTokens ?? []).some((t) => t.kind === kind && t.hash === hash)
   );
 
   if (!user) return null;
 
-  const remaining = activeRefreshEntries(user).filter(
-    (t) => !(t.kind === kind && t.hash === hash)
-  );
+  const entry = (user.refreshTokens ?? []).find(
+    (t) => t.kind === kind && t.hash === hash
+  )!;
+
+  // Reuso de un token ya rotado
+  if (entry.usedAt) {
+    const usedAgeMs = Date.now() - new Date(entry.usedAt).getTime();
+    if (usedAgeMs > REFRESH_REUSE_GRACE_MS) {
+      // Señal de robo: alguien presentó un token que ya fue canjeado por otra
+      // sesión. Se quema toda la familia de refresh tokens del usuario.
+      await getUserRepo().update(user.id, { refreshTokens: [] });
+      console.warn(
+        `[Sesión] Reuso de refresh token detectado (kind=${kind}) — ` +
+          'revocadas todas las sesiones del usuario'
+      );
+    }
+    // Dentro de la gracia: carrera de rotación paralela legítima.
+    return null;
+  }
+
+  // Expirado sin uso: purgar la entrada y salir sin renovar.
+  if (new Date(entry.expiresAt).getTime() <= Date.now()) {
+    await getUserRepo().update(user.id, {
+      refreshTokens: liveRefreshEntries(user).filter((t) => t.hash !== hash),
+    });
+    return null;
+  }
+
+  const nowIsoString = new Date().toISOString();
+  const live = liveRefreshEntries(user);
   const newToken = generateRefreshToken();
   await getUserRepo().update(user.id, {
     refreshTokens: [
-      ...remaining.slice(-(MAX_REFRESH_TOKENS_PER_KIND - 1)),
+      // Marcas de reuso retenidas (excepto la que acabamos de crear aparte)
+      ...live.filter((t) => t.usedAt && t.hash !== hash),
+      // Slots activos del kind (cap de sesiones simultáneas)
+      ...activeSlots(live, kind)
+        .filter((t) => t.hash !== hash)
+        .slice(-(MAX_REFRESH_TOKENS_PER_KIND - 1)),
+      // El canjeado queda marcado para detectar su reuso
+      { ...entry, usedAt: nowIsoString },
       refreshEntry(newToken, kind),
     ],
   });
