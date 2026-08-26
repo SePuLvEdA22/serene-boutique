@@ -14,9 +14,12 @@ import type { OrderStatus } from '@/lib/models';
  *
  * Seguridad:
  * - NO aplica CSRF (MercadoPago es servidor-a-servidor y no envía Origin).
- * - En modo producción, exige firma válida (x-signature) o verificación
- *   del pago contra la API real; las notificaciones no verificables se
- *   rechazan con 401 (no se acepta "modo test" en silencio).
+ * - En producción con credenciales reales, EXIGE MP_WEBHOOK_SECRET: sin él
+ *   la ruta responde 503 (misconfiguración) en vez de procesar notificaciones
+ *   sin verificar. Dev/test mantienen un comportamiento tolerante.
+ * - Exige firma válida (x-signature) o verificación del pago contra la API
+ *   real; las notificaciones no verificables se rechazan con 401 (no se
+ *   acepta "modo test" en silencio).
  */
 
 export const runtime = 'nodejs';
@@ -106,7 +109,19 @@ export async function POST(request: Request) {
     if (type === 'payment' && data?.id) {
       const paymentId = data.id as number;
 
-      // Verificar firma si hay secret configurado (recomendado en producción)
+      // Fail-fast de configuración: en producción con credenciales reales,
+      // procesar notificaciones sin verificar firma sería un bypass del
+      // webhook (cualquiera podría POSTear notificaciones falsas). Igual que
+      // JWT_SECRET, el secret es obligatorio: sin él se rechaza la petición.
+      if (!MP_WEBHOOK_SECRET && process.env.NODE_ENV === 'production' && !isTestMode) {
+        console.error(
+          '[MercadoPago Webhook] MP_WEBHOOK_SECRET no está configurado en producción — ' +
+            'notificación rechazada (configúralo antes de recibir pagos reales)'
+        );
+        return NextResponse.json({ error: 'Webhook mal configurado' }, { status: 503 });
+      }
+
+      // Verificar firma si hay secret configurado (obligatorio en producción)
       if (MP_WEBHOOK_SECRET) {
         const valid = verifyWebhookSignature({
           signatureHeader: request.headers.get('x-signature'),
