@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV === "development";
 
 const scriptSrc = isDev
   ? "'self' 'unsafe-eval' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com"
-  : "'self' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com";
+  : "'self' https://mercadopago.com https://*.mercadopago.com";
 
 const contentSecurityPolicy = [
   "default-src 'self'",

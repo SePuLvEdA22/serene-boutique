@@ -109,11 +109,10 @@ export async function POST(request: Request) {
     if (type === 'payment' && data?.id) {
       const paymentId = data.id as number;
 
-      // Fail-fast de configuración: en producción con credenciales reales,
-      // procesar notificaciones sin verificar firma sería un bypass del
-      // webhook (cualquiera podría POSTear notificaciones falsas). Igual que
-      // JWT_SECRET, el secret es obligatorio: sin él se rechaza la petición.
-      if (!MP_WEBHOOK_SECRET && process.env.NODE_ENV === 'production' && !isTestMode) {
+      // Fail-fast de configuración: si hay credenciales reales de MP (MP_ACCESS_TOKEN),
+      // el webhook SIN firma es un bypass (cualquiera podría POSTear notificaciones falsas).
+      // Exige MP_WEBHOOK_SECRET siempre que exista MP_ACCESS_TOKEN en producción, sin importar isTestMode.
+      if (!MP_WEBHOOK_SECRET && process.env.NODE_ENV === 'production' && MP_ACCESS_TOKEN) {
         console.error(
           '[MercadoPago Webhook] MP_WEBHOOK_SECRET no está configurado en producción — ' +
             'notificación rechazada (configúralo antes de recibir pagos reales)'

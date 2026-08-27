@@ -7,9 +7,21 @@ export type StoreDriver = 'lowdb' | 'memory' | 'postgres';
 
 let storeInstance: DataStore | null = null;
 
+function normalizeDriver(value: string | undefined): StoreDriver | undefined {
+  const v = value?.trim().toLowerCase();
+  if (v === 'postgres' || v === 'memory' || v === 'lowdb') return v;
+  return undefined;
+}
+
 export function getStore(driver?: StoreDriver): DataStore {
   if (!storeInstance) {
-    const selected = driver ?? (process.env.STORE_DRIVER as StoreDriver | undefined) ?? 'lowdb';
+    const selected = driver ?? normalizeDriver(process.env.STORE_DRIVER) ?? 'lowdb';
+    // Log redacted: nunca exponer DATABASE_URL ni contenido de tablas
+    if (process.env.NODE_ENV === 'production' && selected !== 'postgres') {
+      console.warn('[store] driver no es postgres — persistencia efímera (verifica STORE_DRIVER=postgres en Vercel Production y redeploy)');
+    } else if (process.env.NODE_ENV === 'production' && selected === 'postgres' && !process.env.DATABASE_URL) {
+      console.error('[store] STORE_DRIVER=postgres pero DATABASE_URL no está configurada');
+    }
     switch (selected) {
       case 'memory':
         storeInstance = new MemoryStore();

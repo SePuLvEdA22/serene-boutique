@@ -67,6 +67,8 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch {
+    // Log redacted: no exponer email ni detalles del error (podría contener host)
+    console.error('[register] create failed');
     return NextResponse.json(
       { error: 'Error al registrar' },
       { status: 500 }

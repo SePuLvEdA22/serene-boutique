@@ -3,10 +3,14 @@
 import Link from 'next/link';
 
 export default function Error({
+  error,
   reset,
 }: {
+  error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Log para observabilidad sin exponer detalles al usuario
+  if (error) console.error('[Error Boundary]', error.message, error.digest);
   return (
     <div className="container-store flex flex-1 items-center justify-center py-20">
       <div className="max-w-md text-center">

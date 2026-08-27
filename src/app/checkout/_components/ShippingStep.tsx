@@ -34,14 +34,14 @@ interface ShippingStepProps {
 }
 
 const TEXT_FIELDS = [
-  { id: 's-phone', field: 'phone', label: 'Teléfono *', type: 'tel' },
-  { id: 's-address', field: 'address', label: 'Dirección *', type: 'text' },
+  { id: 's-phone', field: 'phone', label: 'Teléfono *', type: 'tel', autoComplete: 'tel' },
+  { id: 's-address', field: 'address', label: 'Dirección *', type: 'text', autoComplete: 'street-address' },
 ] as const;
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ id, message }: { id?: string; message?: string }) {
   if (!message) return null;
   return (
-    <p className="mt-1 font-body text-xs text-error" role="alert">
+    <p id={id} className="mt-1 font-body text-xs text-error" role="alert">
       {message}
     </p>
   );
@@ -87,9 +87,12 @@ export default function ShippingStep({
             value={shipping.name}
             onChange={(e) => onShippingChange({ ...shipping, name: e.target.value })}
             className={`input-field ${errors.name ? 'border-error' : ''}`}
+            autoComplete="name"
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? 'err-s-name' : undefined}
             required
           />
-          <FieldError message={errors.name} />
+          <FieldError id="err-s-name" message={errors.name} />
         </div>
         <div>
           <label
@@ -104,12 +107,15 @@ export default function ShippingStep({
             value={shipping.email}
             onChange={(e) => onShippingChange({ ...shipping, email: e.target.value })}
             className={`input-field ${errors.email ? 'border-error' : ''}`}
+            autoComplete="email"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? 'err-s-email' : undefined}
             required
           />
-          <FieldError message={errors.email} />
+          <FieldError id="err-s-email" message={errors.email} />
         </div>
       </div>
-      {TEXT_FIELDS.map(({ id, field, label, type }) => (
+      {TEXT_FIELDS.map(({ id, field, label, type, autoComplete }) => (
         <div key={id}>
           <label
             htmlFor={id}
@@ -123,9 +129,12 @@ export default function ShippingStep({
             value={shipping[field]}
             onChange={(e) => onShippingChange({ ...shipping, [field]: e.target.value })}
             className={inputClass(field)}
+            autoComplete={autoComplete}
+            aria-invalid={Boolean(errors[field])}
+            aria-describedby={errors[field] ? `err-${id}` : undefined}
             required
           />
-          <FieldError message={errors[field]} />
+          <FieldError id={`err-${id}`} message={errors[field]} />
         </div>
       ))}
       <div className="grid gap-5 sm:grid-cols-3">
@@ -141,9 +150,12 @@ export default function ShippingStep({
             value={shipping.city}
             onChange={(e) => onShippingChange({ ...shipping, city: e.target.value })}
             className={inputClass('city')}
+            autoComplete="address-level2"
+            aria-invalid={Boolean(errors.city)}
+            aria-describedby={errors.city ? 'err-s-city' : undefined}
             required
           />
-          <FieldError message={errors.city} />
+          <FieldError id="err-s-city" message={errors.city} />
         </div>
         <div>
           <label
@@ -157,9 +169,12 @@ export default function ShippingStep({
             value={shipping.state}
             onChange={(e) => onShippingChange({ ...shipping, state: e.target.value })}
             className={inputClass('state')}
+            autoComplete="address-level1"
+            aria-invalid={Boolean(errors.state)}
+            aria-describedby={errors.state ? 'err-s-state' : undefined}
             required
           />
-          <FieldError message={errors.state} />
+          <FieldError id="err-s-state" message={errors.state} />
         </div>
         <div>
           <label
@@ -173,9 +188,12 @@ export default function ShippingStep({
             value={shipping.zip}
             onChange={(e) => onShippingChange({ ...shipping, zip: e.target.value })}
             className={inputClass('zip')}
+            autoComplete="postal-code"
+            aria-invalid={Boolean(errors.zip)}
+            aria-describedby={errors.zip ? 'err-s-zip' : undefined}
             required
           />
-          <FieldError message={errors.zip} />
+          <FieldError id="err-s-zip" message={errors.zip} />
         </div>
       </div>
       <div>
