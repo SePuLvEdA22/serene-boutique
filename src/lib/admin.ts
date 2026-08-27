@@ -15,17 +15,41 @@ export async function ensureAdminUser(): Promise<void> {
   if (db.adminInitialized) return;
 
   const email = getAdminEmail();
-  const existing = await getUserRepo().findByEmail(email);
+  const existingByEmail = await getUserRepo().findByEmail(email);
 
-  if (!existing || !existing.isAdmin) {
-    const password = getAdminPassword();
+  if (existingByEmail?.isAdmin) {
+    db.adminInitialized = true;
+    return;
+  }
+
+  const password = getAdminPassword();
+  const hashed = bcrypt.hashSync(password, 10);
+  const now = new Date().toISOString();
+
+  // Evita duplicar id 'admin-1' si ya existe con otro email (cambio de ADMIN_EMAIL)
+  // o si el email ya existe como usuario no-admin: actualizar en lugar de crear duplicado.
+  const existingById = await getUserRepo().findById('admin-1');
+  if (existingById) {
+    await getUserRepo().update('admin-1', {
+      name: 'Administrador',
+      email,
+      password: hashed,
+      isAdmin: true,
+    });
+  } else if (existingByEmail) {
+    // Email existe pero no es admin (caso raro): promoverlo
+    await getUserRepo().update(existingByEmail.id, {
+      isAdmin: true,
+      password: hashed,
+    });
+  } else {
     await getUserRepo().create({
       id: 'admin-1',
       name: 'Administrador',
       email,
-      password: bcrypt.hashSync(password, 10),
+      password: hashed,
       isAdmin: true,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
     });
   }
 

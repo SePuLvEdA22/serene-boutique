@@ -328,16 +328,19 @@ export class PostgresStore implements DataStore {
   }
 
   async setUsers(users: User[]): Promise<void> {
+    // Defensa: deduplicar por id para evitar "ON CONFLICT DO UPDATE cannot affect row a second time"
+    // si el caller pasó [...users, {id:'admin-1', ...}] duplicado.
+    const deduped = [...new Map(users.map((u) => [u.id, u])).values()];
     const upserts: Array<{ text: string; params: unknown[] }> = [];
-    if (users.length > 0) {
+    if (deduped.length > 0) {
       upserts.push({
-        text: UPSERT_USERS.replace('@VALUES@', valueGroups(users.length, 9).join(', ')),
-        params: users.flatMap(userToParams),
+        text: UPSERT_USERS.replace('@VALUES@', valueGroups(deduped.length, 9).join(', ')),
+        params: deduped.flatMap(userToParams),
       });
     }
 
     const tokenRows: Array<{ text: string; params: unknown[] }> = [];
-    const allTokens = users.flatMap((u) =>
+    const allTokens = deduped.flatMap((u) =>
       (u.refreshTokens ?? []).map((t) => ({ userId: u.id, token: t }))
     );
     if (allTokens.length > 0) {
@@ -358,7 +361,7 @@ export class PostgresStore implements DataStore {
           }
         : { text: 'DELETE FROM refresh_tokens', params: [] };
 
-    await this.syncTable([...upserts, ...tokenRows], [deleteMissingById('users', users.map(u => u.id)), deleteStaleTokens]);
+    await this.syncTable([...upserts, ...tokenRows], [deleteMissingById('users', deduped.map(u => u.id)), deleteStaleTokens]);
   }
 
   /* ---- productos ---- */
