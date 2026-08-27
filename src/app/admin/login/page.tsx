@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Spinner from '@/components/Spinner';
@@ -10,6 +10,21 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Defensa: si alguien llegó con ?email=...&password=... (submit nativo GET
+  // por hidratación fallida o link compartido), limpiar la URL de inmediato
+  // para que no quede en historial ni Referer. No loguear valores.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('password') || url.searchParams.has('email')) {
+      url.searchParams.delete('password');
+      url.searchParams.delete('email');
+      // Usar replace para no dejar la URL con creds en el historial
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      console.warn('[admin-login] URL con credenciales limpiada');
+    }
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,7 +76,7 @@ export default function AdminLoginPage() {
             <p className="mt-1 font-body text-sm text-on-surface-variant">Panel de administración</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          <form onSubmit={handleSubmit} method="post" action="#" className="flex flex-col gap-4" noValidate>
             <div>
               <label htmlFor="email" className="admin-label mb-2">
                 Email
@@ -70,6 +85,7 @@ export default function AdminLoginPage() {
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="username"
                 className={`input-field ${errors.email ? 'border-error' : ''}`}
                 required
               />
@@ -83,6 +99,7 @@ export default function AdminLoginPage() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 className={`input-field ${errors.password ? 'border-error' : ''}`}
                 required
               />
