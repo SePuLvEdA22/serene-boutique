@@ -23,9 +23,16 @@ const themeListeners = new Set<() => void>();
 
 function readTheme(): Theme {
   if (typeof window === 'undefined') return 'light';
-  const stored = window.localStorage.getItem(THEME_KEY);
-  if (stored === 'dark' || stored === 'light') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  try {
+    const stored = window.localStorage.getItem(THEME_KEY);
+    if (stored === 'dark' || stored === 'light') return stored;
+    if (typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+  } catch {
+    /* storage o matchMedia no disponible (Safari privado, iframe) */
+  }
+  return 'light';
 }
 
 function subscribeTheme(callback: () => void): () => void {

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const hasDatabaseUrl = !!process.env.DATABASE_URL;
 
   let canConnect = false;
-  let counts: { users: number; orders: number } | undefined;
+  let counts: { users: number; orders: number; products: number } | undefined;
 
   if (driver === 'postgres' && hasDatabaseUrl) {
     try {
@@ -37,15 +37,18 @@ export async function GET(request: Request) {
       canConnect = true;
       // Counts agregados solamente (nunca filas/emails)
       try {
-        const [u, o] = await Promise.all([
+        const [u, o, p] = await Promise.all([
           client.query('SELECT count(*)::text as c FROM users', []),
           client.query('SELECT count(*)::text as c FROM orders', []),
+          client.query('SELECT count(*)::text as c FROM products', []),
         ]);
         const users = Number((u[0] as Record<string, unknown>)?.c ?? 0);
         const orders = Number((o[0] as Record<string, unknown>)?.c ?? 0);
+        const products = Number((p[0] as Record<string, unknown>)?.c ?? 0);
         counts = {
           users: Number.isFinite(users) ? users : 0,
           orders: Number.isFinite(orders) ? orders : 0,
+          products: Number.isFinite(products) ? products : 0,
         };
       } catch {
         // Si counts falla pero SELECT 1 pasó, mantener canConnect=true sin counts
