@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -79,6 +79,18 @@ export default function RegistrarsePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('password') || url.searchParams.has('email') || url.searchParams.has('confirm')) {
+      url.searchParams.delete('password');
+      url.searchParams.delete('email');
+      url.searchParams.delete('confirm');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      console.warn('[register] URL con credenciales limpiada');
+    }
+  }, []);
 
   // Controlled inputs for real-time validation
   const [password, setPassword] = useState('');

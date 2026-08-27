@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
             <p className="mt-1 font-body text-sm text-on-surface-variant">Panel de administración</p>
           </div>
 
-          <form onSubmit={handleSubmit} method="post" action="#" className="flex flex-col gap-4" noValidate>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             <div>
               <label htmlFor="email" className="admin-label mb-2">
                 Email

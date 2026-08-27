@@ -39,7 +39,19 @@ function hasSession(state: TokenState): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Defensa: si la URL trae credenciales por submit nativo GET (fallback sin JS),
+  // limpiar inmediatamente con redirect sin exponer valores en logs.
+  if (searchParams.has('password') || searchParams.has('confirm')) {
+    const clean = new URL(request.url);
+    clean.searchParams.delete('password');
+    clean.searchParams.delete('confirm');
+    // email también se limpia si venía con password (evita fuga por Referer)
+    if (searchParams.has('password')) clean.searchParams.delete('email');
+    return NextResponse.redirect(clean);
+  }
+
   const adminState = await adminSessionState(request);
 
   // Bloquear acceso del admin a la tienda — redirigir al panel
