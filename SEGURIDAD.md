@@ -15,7 +15,7 @@
 | 4         | JWT largos sin refresh; sin bloqueo de cuenta                                       | ✅ Implementado                                   |
 | 5         | Ley 1581: consentimiento explícito y borrado de datos                               | ✅ Implementado                                   |
 | 6         | Cifrado en reposo de datos sensibles (lowdb en claro)                               | ✅ Implementado                                   |
-| 7         | CSP con `unsafe-inline`/`unsafe-eval`; JSON-LD sin escape de `<`                    | ✅ Parcial (JSON-LD fix, CSP style-src pendiente) |
+| 7         | CSP con `unsafe-inline`/`unsafe-eval`; JSON-LD sin escape de `<`                    | ✅ Parcial (JSON-LD fix, CSP `unsafe-inline` documentado como riesgo aceptado) |
 
 Verificación actual: **127+ tests pasando**, typecheck OK, build OK, `npm audit` = 0 vulnerabilidades, lint OK.
 
@@ -85,7 +85,7 @@ Regla 4: "JWT con expiración corta (ej. 15 min) + refresh tokens con rotación,
 ### 8. CSP y JSON-LD (prioridad 7)
 
 - **`src/components/ProductJsonLd.tsx:53`** ya escapa `<` con `.replace(/</g, '\\u003c')` — stored-XSS mitigado.
-- **`next.config.ts:11`** CSP prod sin `unsafe-eval` (solo dev con Turbopack). Queda `style-src 'unsafe-inline'` (necesario para Tailwind 4 inline) — documentado como riesgo aceptado, migración a nonces planificada Sprint 3.
+- **`next.config.ts:11`** CSP prod sin `unsafe-eval` (solo dev con Turbopack). `script-src` y `style-src` llevan `'unsafe-inline'` — requerido por Next.js App Router (inline scripts de hidratación) y Tailwind 4 — documentado como riesgo aceptado, migración a nonces planificada Sprint 3. `Permissions-Policy` sin `interest-cohort` (deprecado).
 
 ---
 
@@ -93,9 +93,9 @@ Regla 4: "JWT con expiración corta (ej. 15 min) + refresh tokens con rotación,
 
 ### Por prioridad
 
-| #   | Pendiente                         | Detalle                                                                                  | Dónde            |
-| --- | --------------------------------- | ---------------------------------------------------------------------------------------- | ---------------- |
-| 7   | **CSP `style-src unsafe-inline`** | Tailwind 4 requiere `unsafe-inline` para estilos; requiere nonces/hashes para endurecer. | `next.config.ts` |
+| #   | Pendiente                                     | Detalle                                                                                      | Dónde            |
+| --- | --------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------- |
+| 7   | **CSP `script-src`/`style-src` `unsafe-inline`** | Next.js + Tailwind 4 requieren `unsafe-inline`; requiere nonces/hashes para endurecer. | `next.config.ts` |
 
 ### Menores (hallazgos del análisis)
 
@@ -128,7 +128,7 @@ Regla 4: "JWT con expiración corta (ej. 15 min) + refresh tokens con rotación,
 | 4. Autenticación y sesiones       | ✅ Mejorado | Access 15 min + refresh rotativo server-side + lockout; falta 2FA                                                            |
 | 5. XSS                            | ✅ Bueno    | React escapa por defecto; CSP prod sin `unsafe-eval`, JSON-LD escapa `<`                                                     |
 | 6. CSRF                           | ⚠️ Parcial  | `sameSite=strict` + validación de Origin; sin tokens anti-CSRF (documentado)                                                 |
-| 7. Transporte y headers           | ✅ Cumple   | HTTPS/HSTS, X-Frame-Options, nosniff, Referrer-Policy; CSP `style-src unsafe-inline` pendiente nonces                        |
+| 7. Transporte y headers           | ✅ Cumple   | HTTPS/HSTS, X-Frame-Options, nosniff, Referrer-Policy; CSP `script-src`/`style-src` `unsafe-inline` pendiente nonces        |
 | 8. Pagos y datos sensibles        | ✅ Bueno    | Sin tarjetas (MP tokenizado), firma + monto verificados, PII cifrado AES-GCM, `MP_WEBHOOK_SECRET` obligatorio en prod        |
 | 9. Infraestructura y dependencias | ✅ Bueno    | Audit 0 bloqueante, secrets fail-fast, Upstash warn/error en prod                                                            |
 | 10. Logging y errores             | ✅ Bueno    | Webhook sin PII ✅; newsletter/contact sin PII                                                                               |

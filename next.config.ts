@@ -1,12 +1,15 @@
 import type { NextConfig } from "next";
 
-// CSP por entorno: 'unsafe-eval' solo en desarrollo (HMR de Turbopack lo
-// requiere). En producción se sirve una política más estricta.
+// CSP por entorno: 'unsafe-eval' solo en desarrollo (HMR de Turbopack).
+// 'unsafe-inline' para script-src es requerido por Next.js App Router
+// (inline scripts de hidratación) incluso en producción; sin él el login
+// falla con "violates CSP" y React #412. Se documenta como riesgo aceptado
+// hasta migrar a nonces (Sprint 3).
 const isDev = process.env.NODE_ENV === "development";
 
 const scriptSrc = isDev
   ? "'self' 'unsafe-eval' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com"
-  : "'self' https://mercadopago.com https://*.mercadopago.com";
+  : "'self' 'unsafe-inline' https://mercadopago.com https://*.mercadopago.com";
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -61,7 +64,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+            value: "camera=(), microphone=(), geolocation=()",
           },
           {
             key: "X-DNS-Prefetch-Control",
