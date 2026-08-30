@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Category } from '@/lib/models';
 import { getProductById, getProductsByCategory } from '@/lib/products';
+
+export const dynamic = 'force-dynamic';
 import type { Product } from '@/types';
 import ProductImage from '@/components/ProductImage';
 import PriceTag from '@/components/PriceTag';

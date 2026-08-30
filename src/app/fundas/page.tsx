@@ -3,6 +3,8 @@ import ProductFilters from "@/components/ProductFilters";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { getProductsByCategory } from "@/lib/products";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Fundas",
   description:
