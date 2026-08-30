@@ -1,11 +1,21 @@
-import path from 'path';
-import { JSONFileSyncPreset } from 'lowdb/node';
-import type { DataStore, StoreData, StoreUser, StoreOrder, Contact, Subscriber, StoreSettings, StorePromo } from './types';
-import { initialProducts } from '@/lib/product-data';
-import type { Product } from '@/lib/models';
-import { DEFAULT_SETTINGS } from '@/lib/models/settings';
+import path from "path";
+import { JSONFileSyncPreset } from "lowdb/node";
+import type {
+  DataStore,
+  StoreData,
+  StoreUser,
+  StoreOrder,
+  Contact,
+  Subscriber,
+  StoreSettings,
+  StorePromo,
+} from "./types";
+import { initialProducts } from "@/lib/product-data";
+import type { Product } from "@/lib/models";
+import { DEFAULT_SETTINGS } from "@/lib/models/settings";
+import { maybeEncryptJson, maybeDecryptJson, isEncryptedValue } from "@/lib/crypto";
 
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
+const DB_PATH = path.join(process.cwd(), "data", "db.json");
 
 export class LowdbStore implements DataStore {
   private db: ReturnType<typeof JSONFileSyncPreset<StoreData>>;
@@ -36,23 +46,104 @@ export class LowdbStore implements DataStore {
   }
 
   private persist(): void {
-    try { this.db.write(); } catch { /* file write error */ }
+    try {
+      this.db.write();
+    } catch {
+      /* file write error */
+    }
   }
 
-  async getUsers(): Promise<StoreUser[]> { return this.db.data.users; }
-  async setUsers(users: StoreUser[]): Promise<void> { this.db.data.users = users; this.persist(); }
-  async getProducts(): Promise<Product[]> { return this.db.data.products; }
-  async setProducts(products: Product[]): Promise<void> { this.db.data.products = products; this.persist(); }
-  async getOrders(): Promise<StoreOrder[]> { return this.db.data.orders; }
-  async setOrders(orders: StoreOrder[]): Promise<void> { this.db.data.orders = orders; this.persist(); }
-  async getContacts(): Promise<Contact[]> { return this.db.data.contacts; }
-  async setContacts(contacts: Contact[]): Promise<void> { this.db.data.contacts = contacts; this.persist(); }
-  async getSubscribers(): Promise<Subscriber[]> { return this.db.data.subscribers; }
-  async setSubscribers(subscribers: Subscriber[]): Promise<void> { this.db.data.subscribers = subscribers; this.persist(); }
-  async getSettings(): Promise<StoreSettings> { return this.db.data.settings; }
-  async setSettings(settings: StoreSettings): Promise<void> { this.db.data.settings = settings; this.persist(); }
-  async getPromos(): Promise<StorePromo[]> { return this.db.data.promos; }
-  async setPromos(promos: StorePromo[]): Promise<void> { this.db.data.promos = promos; this.persist(); }
+  async getUsers(): Promise<StoreUser[]> {
+    return this.db.data.users;
+  }
+  async setUsers(users: StoreUser[]): Promise<void> {
+    this.db.data.users = users;
+    this.persist();
+  }
+  async getProducts(): Promise<Product[]> {
+    return this.db.data.products;
+  }
+  async setProducts(products: Product[]): Promise<void> {
+    this.db.data.products = products;
+    this.persist();
+  }
+  async getOrders(): Promise<StoreOrder[]> {
+    return this.db.data.orders.map((o) => {
+      let shipping: StoreOrder["shipping"];
+      if (isEncryptedValue(o.shipping as unknown)) {
+        const dec = maybeDecryptJson(o.shipping as unknown);
+        shipping =
+          typeof dec === "string" && isEncryptedValue(dec)
+            ? ({
+                name: "[cifrado]",
+                email: "",
+                phone: "",
+                address: "[cifrado]",
+                city: "",
+                state: "",
+                zip: "",
+                notes: "",
+              } as StoreOrder["shipping"])
+            : (dec as StoreOrder["shipping"]);
+      } else {
+        shipping = o.shipping as StoreOrder["shipping"];
+      }
+
+      let payerIdentification = o.payerIdentification as StoreOrder["payerIdentification"];
+      if (isEncryptedValue(o.payerIdentification as unknown)) {
+        const dec = maybeDecryptJson(o.payerIdentification as unknown);
+        payerIdentification =
+          typeof dec === "string" && isEncryptedValue(dec)
+            ? (o.payerIdentification as StoreOrder["payerIdentification"])
+            : (dec as StoreOrder["payerIdentification"]);
+      }
+
+      return { ...o, shipping, payerIdentification };
+    });
+  }
+  async setOrders(orders: StoreOrder[]): Promise<void> {
+    const encrypted = orders.map((o) => ({
+      ...o,
+      shipping: isEncryptedValue(o.shipping as unknown)
+        ? (o.shipping as StoreOrder["shipping"])
+        : (maybeEncryptJson(o.shipping) as StoreOrder["shipping"]),
+      payerIdentification: o.payerIdentification
+        ? isEncryptedValue(o.payerIdentification as unknown)
+          ? o.payerIdentification
+          : (maybeEncryptJson(o.payerIdentification) as StoreOrder["payerIdentification"])
+        : undefined,
+    }));
+    this.db.data.orders = encrypted;
+    this.persist();
+  }
+  async getContacts(): Promise<Contact[]> {
+    return this.db.data.contacts;
+  }
+  async setContacts(contacts: Contact[]): Promise<void> {
+    this.db.data.contacts = contacts;
+    this.persist();
+  }
+  async getSubscribers(): Promise<Subscriber[]> {
+    return this.db.data.subscribers;
+  }
+  async setSubscribers(subscribers: Subscriber[]): Promise<void> {
+    this.db.data.subscribers = subscribers;
+    this.persist();
+  }
+  async getSettings(): Promise<StoreSettings> {
+    return this.db.data.settings;
+  }
+  async setSettings(settings: StoreSettings): Promise<void> {
+    this.db.data.settings = settings;
+    this.persist();
+  }
+  async getPromos(): Promise<StorePromo[]> {
+    return this.db.data.promos;
+  }
+  async setPromos(promos: StorePromo[]): Promise<void> {
+    this.db.data.promos = promos;
+    this.persist();
+  }
 
   /**
    * Incremento atómico con guard de `usageLimit`. El mutex de promesa
@@ -76,6 +167,10 @@ export class LowdbStore implements DataStore {
     return run;
   }
 
-  getAdminInitialized(): boolean { return this._adminInitialized; }
-  setAdminInitialized(val: boolean): void { this._adminInitialized = val; }
+  getAdminInitialized(): boolean {
+    return this._adminInitialized;
+  }
+  setAdminInitialized(val: boolean): void {
+    this._adminInitialized = val;
+  }
 }

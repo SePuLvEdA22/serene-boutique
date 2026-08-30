@@ -35,7 +35,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📦 Install dependencies
         run: npm ci
@@ -49,6 +49,9 @@ jobs:
 
       - name: 🧪 Run tests
         run: npm test
+
+      - name: 📊 Coverage (umbral base 35% — objetivo 80% en src/lib)
+        run: npm run test:coverage -- --run
 
       # ── Build: verifica que el proyecto compila correctamente ──
       - name: ♻️ Cache Next.js build
@@ -77,7 +80,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📦 Install dependencies
         run: npm ci

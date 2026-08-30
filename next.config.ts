@@ -34,7 +34,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "*.blob.vercel-storage.com",
-        pathname: "/products/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
       },
     ],
   },
@@ -72,9 +75,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/(.*)",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-        ],
+        headers: [{ key: "X-Content-Type-Options", value: "nosniff" }],
       },
     ];
   },
