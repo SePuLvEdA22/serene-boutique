@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { neon } from "@neondatabase/serverless";
 import type {
   DataStore,
   StoreOrder,
@@ -6,9 +6,10 @@ import type {
   Subscriber,
   StoreSettings,
   StorePromo,
-} from './types';
-import type { Product, User } from '@/lib/models';
-import { DEFAULT_SETTINGS, SettingsSchema } from '@/lib/models/settings';
+} from "./types";
+import type { Product, User } from "@/lib/models";
+import { DEFAULT_SETTINGS, SettingsSchema } from "@/lib/models/settings";
+import { maybeEncryptJson, maybeDecryptJson, isEncryptedValue } from "@/lib/crypto";
 
 type Row = Record<string, unknown>;
 
@@ -42,7 +43,7 @@ export interface SqlClient {
 export function createNeonClient(connectionString = process.env.DATABASE_URL): SqlClient {
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL no está configurado. Defínelo en las variables de entorno antes de usar STORE_DRIVER=postgres.'
+      "DATABASE_URL no está configurado. Defínelo en las variables de entorno antes de usar STORE_DRIVER=postgres."
     );
   }
   const sql = neon(connectionString);
@@ -83,9 +84,9 @@ function valueGroups(rowCount: number, colCount: number, jsonbCols: number[] = [
     const start = r * colCount;
     const ph: string[] = [];
     for (let c = 0; c < colCount; c++) {
-      ph.push(`$${start + c + 1}${jsonbCols.includes(c) ? '::jsonb' : ''}`);
+      ph.push(`$${start + c + 1}${jsonbCols.includes(c) ? "::jsonb" : ""}`);
     }
-    groups.push(`(${ph.join(', ')})`);
+    groups.push(`(${ph.join(", ")})`);
   }
   return groups;
 }
@@ -97,7 +98,7 @@ function valueGroups(rowCount: number, colCount: number, jsonbCols: number[] = [
  */
 function deleteMissingById(table: string, ids: string[]): { text: string; params: string[] } {
   if (ids.length === 0) return { text: `DELETE FROM ${table}`, params: [] };
-  const ph = ids.map((_, i) => `$${i + 1}`).join(', ');
+  const ph = ids.map((_, i) => `$${i + 1}`).join(", ");
   return { text: `DELETE FROM ${table} WHERE id NOT IN (${ph})`, params: ids };
 }
 
@@ -126,7 +127,7 @@ ON CONFLICT (id) DO UPDATE SET
   failed_login_attempts = EXCLUDED.failed_login_attempts, lockout_until = EXCLUDED.lockout_until,
   created_at = EXCLUDED.created_at`;
 
-function tokenToParams(userId: string, t: NonNullable<User['refreshTokens']>[number]): unknown[] {
+function tokenToParams(userId: string, t: NonNullable<User["refreshTokens"]>[number]): unknown[] {
   return [t.hash, t.kind, userId, t.expiresAt, t.createdAt, t.usedAt ?? null];
 }
 // prettier-ignore
@@ -142,7 +143,7 @@ function productToParams(p: Product): unknown[] {
   return [
     p.id,
     p.name,
-    p.description ?? '',
+    p.description ?? "",
     p.price,
     p.salePrice ?? null,
     JSON.stringify(p.images ?? []),
@@ -181,7 +182,7 @@ function orderToParams(o: StoreOrder): unknown[] {
     o.mpPaymentId ?? null,
     o.mpPreferenceId ?? null,
     o.payerIdentification ? JSON.stringify(o.payerIdentification) : null,
-    o.status ?? 'pending',
+    o.status ?? "pending",
     o.createdAt ?? nowIso(),
   ];
 }
@@ -245,7 +246,7 @@ function promoFromRow(row: Row): StorePromo {
   return {
     id: String(row.id),
     code: String(row.code),
-    type: row.type === 'fixed' ? ('fixed' as const) : ('percent' as const),
+    type: row.type === "fixed" ? ("fixed" as const) : ("percent" as const),
     value: toNum(row.value) ?? 0,
     minOrder: toNum(row.min_order) ?? 0,
     active: row.active !== false,
@@ -295,17 +296,17 @@ export class PostgresStore implements DataStore {
   /* ---- usuarios (+ refresh tokens en su tabla aparte) ---- */
 
   async getUsers(): Promise<User[]> {
-    const rows = await this.client.query('SELECT * FROM users ORDER BY created_at ASC, id ASC');
+    const rows = await this.client.query("SELECT * FROM users ORDER BY created_at ASC, id ASC");
     if (rows.length === 0) return [];
 
-    const tokenRows = await this.client.query('SELECT * FROM refresh_tokens ORDER BY id ASC');
-    const tokensByUser = new Map<string, NonNullable<User['refreshTokens']>>();
+    const tokenRows = await this.client.query("SELECT * FROM refresh_tokens ORDER BY id ASC");
+    const tokensByUser = new Map<string, NonNullable<User["refreshTokens"]>>();
     for (const t of tokenRows) {
       const userId = String(t.user_id);
       const list = tokensByUser.get(userId) ?? [];
       list.push({
         hash: String(t.hash),
-        kind: t.kind === 'admin' ? 'admin' : 'user',
+        kind: t.kind === "admin" ? "admin" : "user",
         expiresAt: toIso(t.expires_at) ?? nowIso(),
         createdAt: toIso(t.created_at) ?? nowIso(),
         usedAt: toIso(t.used_at),
@@ -334,7 +335,7 @@ export class PostgresStore implements DataStore {
     const upserts: Array<{ text: string; params: unknown[] }> = [];
     if (deduped.length > 0) {
       upserts.push({
-        text: UPSERT_USERS.replace('@VALUES@', valueGroups(deduped.length, 9).join(', ')),
+        text: UPSERT_USERS.replace("@VALUES@", valueGroups(deduped.length, 9).join(", ")),
         params: deduped.flatMap(userToParams),
       });
     }
@@ -345,7 +346,7 @@ export class PostgresStore implements DataStore {
     );
     if (allTokens.length > 0) {
       tokenRows.push({
-        text: UPSERT_TOKENS.replace('@VALUES@', valueGroups(allTokens.length, 6).join(', ')),
+        text: UPSERT_TOKENS.replace("@VALUES@", valueGroups(allTokens.length, 6).join(", ")),
         params: allTokens.flatMap(({ userId, token }) => tokenToParams(userId, token)),
       });
     }
@@ -356,27 +357,36 @@ export class PostgresStore implements DataStore {
     const deleteStaleTokens =
       hashes.length > 0
         ? {
-            text: `DELETE FROM refresh_tokens WHERE hash NOT IN (${hashes.map((_, i) => `$${i + 1}`).join(', ')})`,
+            text: `DELETE FROM refresh_tokens WHERE hash NOT IN (${hashes.map((_, i) => `$${i + 1}`).join(", ")})`,
             params: hashes,
           }
-        : { text: 'DELETE FROM refresh_tokens', params: [] };
+        : { text: "DELETE FROM refresh_tokens", params: [] };
 
-    await this.syncTable([...upserts, ...tokenRows], [deleteMissingById('users', deduped.map(u => u.id)), deleteStaleTokens]);
+    await this.syncTable(
+      [...upserts, ...tokenRows],
+      [
+        deleteMissingById(
+          "users",
+          deduped.map((u) => u.id)
+        ),
+        deleteStaleTokens,
+      ]
+    );
   }
 
   /* ---- productos ---- */
 
   async getProducts(): Promise<Product[]> {
-    const rows = await this.client.query('SELECT * FROM products ORDER BY created_at ASC, id ASC');
+    const rows = await this.client.query("SELECT * FROM products ORDER BY created_at ASC, id ASC");
     return rows.map((row) => ({
       id: String(row.id),
       name: String(row.name),
-      description: String(row.description ?? ''),
+      description: String(row.description ?? ""),
       price: toNum(row.price) ?? 0,
       salePrice: toNum(row.sale_price),
       images: Array.isArray(row.images) ? (row.images as string[]) : [],
       image: row.image == null ? undefined : String(row.image),
-      category: row.category as Product['category'],
+      category: row.category as Product["category"],
       featured: row.featured === true,
       active: row.active !== false,
       colors: Array.isArray(row.colors) ? (row.colors as string[]) : [],
@@ -392,57 +402,119 @@ export class PostgresStore implements DataStore {
         ? [
             {
               text: UPSERT_PRODUCTS.replace(
-                '@VALUES@',
-                valueGroups(products.length, 14, [5, 10, 11]).join(', ')
+                "@VALUES@",
+                valueGroups(products.length, 14, [5, 10, 11]).join(", ")
               ), // jsonb: images(5), colors(10), tags(11)
               params: products.flatMap(productToParams),
             },
           ]
         : [];
-    await this.syncTable(upserts, [deleteMissingById('products', products.map((p) => p.id))]);
+    await this.syncTable(upserts, [
+      deleteMissingById(
+        "products",
+        products.map((p) => p.id)
+      ),
+    ]);
   }
 
   /* ---- órdenes ---- */
 
   async getOrders(): Promise<StoreOrder[]> {
-    const rows = await this.client.query('SELECT * FROM orders ORDER BY created_at ASC, id ASC');
-    return rows.map((row) => ({
-      id: String(row.id),
-      userId: row.user_id == null ? undefined : String(row.user_id),
-      items: row.items as StoreOrder['items'],
-      shipping: row.shipping as StoreOrder['shipping'],
-      total: toNum(row.total) ?? 0,
-      discount: toNum(row.discount),
-      promoId: row.promo_id == null ? undefined : String(row.promo_id),
-      paymentMethod: row.payment_method == null ? undefined : (String(row.payment_method) as StoreOrder['paymentMethod']),
-      mpPaymentId: row.mp_payment_id == null ? undefined : String(row.mp_payment_id),
-      mpPreferenceId: row.mp_preference_id == null ? undefined : String(row.mp_preference_id),
-      payerIdentification: (row.payer_identification ?? undefined) as StoreOrder['payerIdentification'],
-      status: (row.status ?? 'pending') as StoreOrder['status'],
-      createdAt: toIso(row.created_at) ?? nowIso(),
-    }));
+    const rows = await this.client.query("SELECT * FROM orders ORDER BY created_at ASC, id ASC");
+    return rows.map((row) => {
+      // shipping/payerIdentification pueden estar cifrados como string `enc:v1:...`
+      const rawShipping = row.shipping as unknown;
+      const rawPayer = row.payer_identification as unknown;
+
+      let shipping: StoreOrder["shipping"];
+      if (isEncryptedValue(rawShipping)) {
+        const dec = maybeDecryptJson(rawShipping);
+        shipping =
+          typeof dec === "string" && isEncryptedValue(dec)
+            ? ({
+                name: "[cifrado]",
+                email: "",
+                phone: "",
+                address: "[cifrado]",
+                city: "",
+                state: "",
+                zip: "",
+                notes: "",
+              } as StoreOrder["shipping"])
+            : (dec as StoreOrder["shipping"]);
+      } else {
+        shipping = rawShipping as StoreOrder["shipping"];
+      }
+
+      let payerIdentification: StoreOrder["payerIdentification"];
+      if (isEncryptedValue(rawPayer)) {
+        const dec = maybeDecryptJson(rawPayer);
+        payerIdentification =
+          typeof dec === "string" && isEncryptedValue(dec)
+            ? (rawPayer as StoreOrder["payerIdentification"])
+            : (dec as StoreOrder["payerIdentification"]);
+      } else {
+        payerIdentification = (rawPayer ?? undefined) as StoreOrder["payerIdentification"];
+      }
+
+      return {
+        id: String(row.id),
+        userId: row.user_id == null ? undefined : String(row.user_id),
+        items: row.items as StoreOrder["items"],
+        shipping,
+        total: toNum(row.total) ?? 0,
+        discount: toNum(row.discount),
+        promoId: row.promo_id == null ? undefined : String(row.promo_id),
+        paymentMethod:
+          row.payment_method == null
+            ? undefined
+            : (String(row.payment_method) as StoreOrder["paymentMethod"]),
+        mpPaymentId: row.mp_payment_id == null ? undefined : String(row.mp_payment_id),
+        mpPreferenceId: row.mp_preference_id == null ? undefined : String(row.mp_preference_id),
+        payerIdentification,
+        status: (row.status ?? "pending") as StoreOrder["status"],
+        createdAt: toIso(row.created_at) ?? nowIso(),
+      };
+    });
   }
 
   async setOrders(orders: StoreOrder[]): Promise<void> {
+    // Cifrar PII antes de persistir (si hay clave, shipping/payer se vuelven string `enc:v1:...`)
+    const encryptedOrders = orders.map((o) => ({
+      ...o,
+      shipping: isEncryptedValue(o.shipping as unknown)
+        ? o.shipping
+        : (maybeEncryptJson(o.shipping) as StoreOrder["shipping"]),
+      payerIdentification: o.payerIdentification
+        ? isEncryptedValue(o.payerIdentification as unknown)
+          ? o.payerIdentification
+          : (maybeEncryptJson(o.payerIdentification) as StoreOrder["payerIdentification"])
+        : undefined,
+    }));
     const upserts =
-      orders.length > 0
+      encryptedOrders.length > 0
         ? [
             {
               text: UPSERT_ORDERS.replace(
-                '@VALUES@',
-                valueGroups(orders.length, 13, [2, 3, 10]).join(', ')
+                "@VALUES@",
+                valueGroups(encryptedOrders.length, 13, [2, 3, 10]).join(", ")
               ), // jsonb: items(2), shipping(3), payer_identification(10)
-              params: orders.flatMap(orderToParams),
+              params: encryptedOrders.flatMap(orderToParams),
             },
           ]
         : [];
-    await this.syncTable(upserts, [deleteMissingById('orders', orders.map((o) => o.id))]);
+    await this.syncTable(upserts, [
+      deleteMissingById(
+        "orders",
+        encryptedOrders.map((o) => o.id)
+      ),
+    ]);
   }
 
   /* ---- contactos ---- */
 
   async getContacts(): Promise<Contact[]> {
-    const rows = await this.client.query('SELECT * FROM contacts ORDER BY created_at ASC, id ASC');
+    const rows = await this.client.query("SELECT * FROM contacts ORDER BY created_at ASC, id ASC");
     return rows.map((row) => ({
       id: String(row.id),
       name: String(row.name),
@@ -459,18 +531,25 @@ export class PostgresStore implements DataStore {
       contacts.length > 0
         ? [
             {
-              text: UPSERT_CONTACTS.replace('@VALUES@', valueGroups(contacts.length, 7).join(', ')),
+              text: UPSERT_CONTACTS.replace("@VALUES@", valueGroups(contacts.length, 7).join(", ")),
               params: contacts.flatMap(contactToParams),
             },
           ]
         : [];
-    await this.syncTable(upserts, [deleteMissingById('contacts', contacts.map((c) => c.id))]);
+    await this.syncTable(upserts, [
+      deleteMissingById(
+        "contacts",
+        contacts.map((c) => c.id)
+      ),
+    ]);
   }
 
   /* ---- suscriptores ---- */
 
   async getSubscribers(): Promise<Subscriber[]> {
-    const rows = await this.client.query('SELECT * FROM subscribers ORDER BY subscribed_at ASC, id ASC');
+    const rows = await this.client.query(
+      "SELECT * FROM subscribers ORDER BY subscribed_at ASC, id ASC"
+    );
     return rows.map((row) => ({
       id: String(row.id),
       email: String(row.email),
@@ -484,20 +563,28 @@ export class PostgresStore implements DataStore {
       subscribers.length > 0
         ? [
             {
-              text: UPSERT_SUBSCRIBERS.replace('@VALUES@', valueGroups(subscribers.length, 4).join(', ')),
+              text: UPSERT_SUBSCRIBERS.replace(
+                "@VALUES@",
+                valueGroups(subscribers.length, 4).join(", ")
+              ),
               params: subscribers.flatMap(subscriberToParams),
             },
           ]
         : [];
-    await this.syncTable(upserts, [deleteMissingById('subscribers', subscribers.map((s) => s.id))]);
+    await this.syncTable(upserts, [
+      deleteMissingById(
+        "subscribers",
+        subscribers.map((s) => s.id)
+      ),
+    ]);
   }
 
   /* ---- configuración (documento único) ---- */
 
   async getSettings(): Promise<StoreSettings> {
-    const rows = await this.client.query('SELECT data FROM app_settings WHERE id = 1');
+    const rows = await this.client.query("SELECT data FROM app_settings WHERE id = 1");
     const raw = rows[0]?.data;
-    if (!raw || typeof raw !== 'object') return DEFAULT_SETTINGS;
+    if (!raw || typeof raw !== "object") return DEFAULT_SETTINGS;
     try {
       // Mezcla con defaults para tolerar settings guardados con versión anterior.
       return SettingsSchema.parse({ ...DEFAULT_SETTINGS, ...(raw as Record<string, unknown>) });
@@ -508,7 +595,7 @@ export class PostgresStore implements DataStore {
 
   async setSettings(settings: StoreSettings): Promise<void> {
     await this.client.query(
-      'INSERT INTO app_settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data',
+      "INSERT INTO app_settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data",
       [JSON.stringify(settings)]
     );
   }
@@ -516,7 +603,7 @@ export class PostgresStore implements DataStore {
   /* ---- cupones ---- */
 
   async getPromos(): Promise<StorePromo[]> {
-    const rows = await this.client.query('SELECT * FROM promos ORDER BY created_at ASC, id ASC');
+    const rows = await this.client.query("SELECT * FROM promos ORDER BY created_at ASC, id ASC");
     return rows.map(promoFromRow);
   }
 
@@ -525,12 +612,17 @@ export class PostgresStore implements DataStore {
       promos.length > 0
         ? [
             {
-              text: UPSERT_PROMOS.replace('@VALUES@', valueGroups(promos.length, 10).join(', ')),
+              text: UPSERT_PROMOS.replace("@VALUES@", valueGroups(promos.length, 10).join(", ")),
               params: promos.flatMap(promoToParams),
             },
           ]
         : [];
-    await this.syncTable(upserts, [deleteMissingById('promos', promos.map((p) => p.id))]);
+    await this.syncTable(upserts, [
+      deleteMissingById(
+        "promos",
+        promos.map((p) => p.id)
+      ),
+    ]);
   }
 
   /**

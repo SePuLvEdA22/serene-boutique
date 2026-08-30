@@ -1,5 +1,5 @@
-import { createHash, randomBytes } from 'node:crypto';
-import { SignJWT, jwtVerify, errors as joseErrors, type JWTPayload } from 'jose';
+import { createHash, randomBytes } from "node:crypto";
+import { SignJWT, jwtVerify, errors as joseErrors, type JWTPayload } from "jose";
 
 /**
  * Secreto de firma de JWT.
@@ -11,25 +11,34 @@ import { SignJWT, jwtVerify, errors as joseErrors, type JWTPayload } from 'jose'
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (secret) {
-    if (secret.length < 32 && process.env.NODE_ENV === 'production') {
-      throw new Error('JWT_SECRET debe tener al menos 32 caracteres en producción.');
+    if (secret.length < 32 && process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET debe tener al menos 32 caracteres en producción.");
     }
     return secret;
   }
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     throw new Error(
-      'JWT_SECRET no está configurado. Defínelo en las variables de entorno antes de desplegar.'
+      "JWT_SECRET no está configurado. Defínelo en las variables de entorno antes de desplegar."
     );
   }
 
-  return 'dev-secret-do-not-use-in-production-min-32-chars!!';
+  return "dev-secret-do-not-use-in-production-min-32-chars!!";
 }
 
-const SECRET = new TextEncoder().encode(getJwtSecret());
+function getSecret(): Uint8Array {
+  return new TextEncoder().encode(getJwtSecret());
+}
 
-const ISSUER = 'switch-and-tech';
-const AUDIENCE = 'switch-and-tech-users';
+// Fail-fast en producción: validar al importar (exigido por tests de secret).
+// Mantiene la ventaja lazy para rotación de env en dev, pero en prod el proceso
+// falla al arrancar si la clave falta o es corta.
+if (process.env.NODE_ENV === "production") {
+  getJwtSecret();
+}
+
+const ISSUER = "switch-and-tech";
+const AUDIENCE = "switch-and-tech-users";
 
 /**
  * Los access tokens son de corta duración (15 min); la sesión se mantiene con
@@ -49,12 +58,12 @@ export interface AdminToken extends JWTPayload {
 
 /** Genera un refresh token opaco (256 bits aleatorios). */
 export function generateRefreshToken(): string {
-  return randomBytes(32).toString('hex');
+  return randomBytes(32).toString("hex");
 }
 
 /** Hash del refresh token (SHA-256): solo se almacena el hash en la BD. */
 export function hashRefreshToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+  return createHash("sha256").update(token).digest("hex");
 }
 
 /** jose: un número en setExpirationTime es un timestamp Unix, no una duración. */
@@ -68,29 +77,27 @@ export async function signUserToken(user: {
   name: string;
 }): Promise<string> {
   return await new SignJWT({ id: user.id, email: user.email, name: user.name })
-    .setProtectedHeader({ alg: 'HS256' })
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
     .setExpirationTime(accessTokenExpiration())
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function signAdminToken(userId: string): Promise<string> {
   return await new SignJWT({ userId })
-    .setProtectedHeader({ alg: 'HS256' })
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setIssuer(ISSUER)
-    .setAudience('switch-and-tech-admin')
+    .setAudience("switch-and-tech-admin")
     .setExpirationTime(accessTokenExpiration())
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
-export async function verifyUserToken(
-  token: string
-): Promise<UserToken | null> {
+export async function verifyUserToken(token: string): Promise<UserToken | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET, {
+    const { payload } = await jwtVerify(token, getSecret(), {
       issuer: ISSUER,
       audience: AUDIENCE,
     });
@@ -101,13 +108,11 @@ export async function verifyUserToken(
   }
 }
 
-export async function verifyAdminToken(
-  token: string
-): Promise<AdminToken | null> {
+export async function verifyAdminToken(token: string): Promise<AdminToken | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET, {
+    const { payload } = await jwtVerify(token, getSecret(), {
       issuer: ISSUER,
-      audience: 'switch-and-tech-admin',
+      audience: "switch-and-tech-admin",
     });
     if (!payload.userId) return null;
     return payload as unknown as AdminToken;
@@ -127,7 +132,7 @@ export async function verifyAdminToken(
  * una cookie basura se bloquea en la puerta, un token vencido deja pasar
  * la petición para que `requireAdmin()`/`getSessionUser()` lo renueven.
  */
-export type TokenState = 'valid' | 'expired' | 'invalid';
+export type TokenState = "valid" | "expired" | "invalid";
 
 async function inspectToken(
   token: string,
@@ -135,14 +140,14 @@ async function inspectToken(
   hasRequiredClaims: (payload: JWTPayload) => boolean
 ): Promise<TokenState> {
   try {
-    const { payload } = await jwtVerify(token, SECRET, {
+    const { payload } = await jwtVerify(token, getSecret(), {
       issuer: ISSUER,
       audience,
     });
-    return hasRequiredClaims(payload) ? 'valid' : 'invalid';
+    return hasRequiredClaims(payload) ? "valid" : "invalid";
   } catch (err) {
-    if (err instanceof joseErrors.JWTExpired) return 'expired';
-    return 'invalid';
+    if (err instanceof joseErrors.JWTExpired) return "expired";
+    return "invalid";
   }
 }
 
@@ -151,9 +156,5 @@ export function inspectUserTokenState(token: string): Promise<TokenState> {
 }
 
 export function inspectAdminTokenState(token: string): Promise<TokenState> {
-  return inspectToken(
-    token,
-    'switch-and-tech-admin',
-    (p) => Boolean(p.userId)
-  );
+  return inspectToken(token, "switch-and-tech-admin", (p) => Boolean(p.userId));
 }

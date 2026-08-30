@@ -1,53 +1,65 @@
-import { randomUUID } from 'node:crypto';
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { getOrderRepo, getPromoRepo } from '@/lib/repositories';
-import { buildPreference, applyDiscountToPreferenceItems, type PaymentMethodType } from '@/lib/mercadopago';
-import { validateOrderItems } from '@/lib/order-items';
-import { validateCoupon } from '@/lib/promos';
-import { checkRouteRateLimit } from '@/lib/rate-limit';
-import { csrfBlocked } from '@/lib/csrf';
+import { randomUUID } from "node:crypto";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getOrderRepo, getPromoRepo } from "@/lib/repositories";
+import {
+  buildPreference,
+  applyDiscountToPreferenceItems,
+  type PaymentMethodType,
+} from "@/lib/mercadopago";
+import { validateOrderItems } from "@/lib/order-items";
+import { validateCoupon } from "@/lib/promos";
+import { checkRouteRateLimit } from "@/lib/rate-limit";
+import { csrfBlocked } from "@/lib/csrf";
 
 const mpAccessToken = process.env.MP_ACCESS_TOKEN;
 
-const identificationSchema = z.object({
-  type: z.enum(['CC', 'CE', 'NIT', 'Pasaporte']),
-  number: z.string().min(4, 'El número de documento debe tener al menos 4 caracteres'),
-});
+const identificationSchema = z
+  .object({
+    type: z.enum(["CC", "CE", "NIT", "Pasaporte"]),
+    number: z.string().min(4, "El número de documento debe tener al menos 4 caracteres"),
+  })
+  .strict();
 
-const preferenceSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        id: z.string(),
-        title: z.string().min(1),
-        quantity: z.number().int().positive(),
-        unit_price: z.number().positive(),
+const preferenceSchema = z
+  .object({
+    items: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            title: z.string().min(1),
+            quantity: z.number().int().positive(),
+            unit_price: z.number().positive(),
+          })
+          .strict()
+      )
+      .min(1),
+    paymentMethod: z.enum(["card", "pse"]),
+    payer: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        identification: identificationSchema.optional(),
       })
-    )
-    .min(1),
-  paymentMethod: z.enum(['card', 'pse']),
-  payer: z
-    .object({
-      name: z.string().optional(),
-      email: z.string().email().optional(),
-      identification: identificationSchema.optional(),
-    })
-    .optional(),
-  shipping: z
-    .object({
-      name: z.string().min(1),
-      email: z.string().email(),
-      phone: z.string().min(1),
-      address: z.string().min(1),
-      city: z.string().min(1),
-      state: z.string().min(1),
-      zip: z.string().min(1),
-      notes: z.string().optional(),
-    })
-    .optional(),
-  couponCode: z.string().min(3).max(30).optional(),
-});
+      .strict()
+      .optional(),
+    shipping: z
+      .object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().min(1),
+        address: z.string().min(1),
+        city: z.string().min(1),
+        state: z.string().min(1),
+        zip: z.string().min(1),
+        notes: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    couponCode: z.string().min(3).max(30).optional(),
+  })
+  .strict();
 
 export async function POST(request: Request) {
   const blocked = csrfBlocked(request);
@@ -60,7 +72,7 @@ export async function POST(request: Request) {
     });
     if (!rl.allowed) {
       return NextResponse.json(
-        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { error: "Demasiadas solicitudes. Intenta de nuevo en un minuto." },
         { status: 429 }
       );
     }
@@ -70,7 +82,7 @@ export async function POST(request: Request) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Datos de preferencia inválidos', details: parsed.error.issues },
+        { error: "Datos de preferencia inválidos", details: parsed.error.issues },
         { status: 400 }
       );
     }
@@ -90,7 +102,7 @@ export async function POST(request: Request) {
 
     if (!validated.ok) {
       return NextResponse.json(
-        { error: validated.errors[0] || 'Items de orden inválidos' },
+        { error: validated.errors[0] || "Items de orden inválidos" },
         { status: 400 }
       );
     }
@@ -102,10 +114,7 @@ export async function POST(request: Request) {
     if (couponCode) {
       const coupon = validateCoupon(await getPromoRepo().findByCode(couponCode), validated.total);
       if (!coupon.valid) {
-        return NextResponse.json(
-          { error: coupon.reason || 'Cupón inválido' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: coupon.reason || "Cupón inválido" }, { status: 400 });
       }
       discount = coupon.discount ?? 0;
       promoId = coupon.promo?.id;
@@ -115,7 +124,7 @@ export async function POST(request: Request) {
         const applied = await getPromoRepo().tryIncrementUsage(promoId);
         if (!applied) {
           return NextResponse.json(
-            { error: 'Este cupón alcanzó su límite de usos' },
+            { error: "Este cupón alcanzó su límite de usos" },
             { status: 409 }
           );
         }
@@ -130,7 +139,7 @@ export async function POST(request: Request) {
     // La URL base para back_urls y notification_url: usar el origen real del
     // request (dominio desplegado) y, si no viene, derivarlo de la URL del request.
     const origin =
-      request.headers.get('origin') || new URL(request.url).origin || 'https://switchandtech.com';
+      request.headers.get("origin") || new URL(request.url).origin || "https://switchandtech.com";
 
     // Construir preferencia usando la librería (items canónicos del catálogo).
     // Si hay cupón, ajustamos unit_price para que MercadoPago cobre el total correcto.
@@ -174,23 +183,23 @@ export async function POST(request: Request) {
             city: shipping.city,
             state: shipping.state,
             zip: shipping.zip,
-            notes: shipping.notes || '',
+            notes: shipping.notes || "",
           }
         : {
-            name: 'Pendiente',
-            email: '',
-            phone: '',
-            address: '',
-            city: '',
-            state: '',
-            zip: '',
+            name: "Pendiente",
+            email: "",
+            phone: "",
+            address: "",
+            city: "",
+            state: "",
+            zip: "",
           },
       // Total recalculado en el servidor con precios del catálogo
       total: orderTotal,
       ...(discount > 0 ? { discount, promoId } : {}),
       paymentMethod,
       payerIdentification: payer?.identification,
-      status: 'pending' as const,
+      status: "pending" as const,
       createdAt: new Date().toISOString(),
     };
 
@@ -201,8 +210,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           testMode: true,
-          message:
-            'Modo de prueba — Configura MP_ACCESS_TOKEN en .env para activar pagos reales.',
+          message: "Modo de prueba — Configura MP_ACCESS_TOKEN en .env para activar pagos reales.",
           orderId,
           discount,
           preference: {
@@ -216,29 +224,23 @@ export async function POST(request: Request) {
     }
 
     // Crear preferencia en MercadoPago
-    const mpResponse = await fetch(
-      'https://api.mercadopago.com/checkout/preferences',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${mpAccessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(preference),
-      }
-    );
+    const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${mpAccessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(preference),
+    });
 
     if (!mpResponse.ok) {
       const errorText = await mpResponse.text();
-      console.error('[MercadoPago] Error al crear preferencia:', errorText);
+      console.error("[MercadoPago] Error al crear preferencia:", errorText);
 
       // Actualizar orden como cancelada
-      await getOrderRepo().updateStatus(orderId, 'cancelled');
+      await getOrderRepo().updateStatus(orderId, "cancelled");
 
-      return NextResponse.json(
-        { error: 'Error al crear la preferencia de pago' },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: "Error al crear la preferencia de pago" }, { status: 502 });
     }
 
     const data = await mpResponse.json();
@@ -246,7 +248,7 @@ export async function POST(request: Request) {
     // Guardar el ID de la preferencia en la orden
     const updatedOrder = await getOrderRepo().findById(orderId);
     if (updatedOrder) {
-      await getOrderRepo().updateStatus(orderId, 'pending');
+      await getOrderRepo().updateStatus(orderId, "pending");
     }
 
     return NextResponse.json(
@@ -262,10 +264,7 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (err) {
-    console.error('[MercadoPago] Error en create-preference:', err);
-    return NextResponse.json(
-      { error: 'Error al procesar la solicitud de pago' },
-      { status: 500 }
-    );
+    console.error("[MercadoPago] Error en create-preference:", err);
+    return NextResponse.json({ error: "Error al procesar la solicitud de pago" }, { status: 500 });
   }
 }

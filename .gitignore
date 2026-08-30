@@ -45,6 +45,13 @@ next-env.d.ts
 /data/
 data/backups/
 
-# documentacion local (no versionada) — excepto README.md
+# documentacion local (no versionada) — excepto README.md y docs de seguridad/deploy
 /*.md
 !/README.md
+!/SEGURIDAD.md
+!/NEON-DB.md
+!/MERCADOPAGO-PROD.md
+!/VERCEL-PROD.md
+!/DEPLOY.md
+!/CONEXION-NEON.md
+!/estandares-calidad-codigo.md

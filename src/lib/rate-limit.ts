@@ -93,27 +93,27 @@ export class UpstashRateLimitStore implements RateLimitStore {
   private readonly token: string;
 
   constructor(url: string, token: string) {
-    this.url = url.replace(/\/$/, '');
+    this.url = url.replace(/\/$/, "");
     this.token = token;
   }
 
   async increment(key: string, windowMs: number): Promise<IncrementResult> {
     const ttlSeconds = Math.max(1, Math.ceil(windowMs / 1000));
     const commands = [
-      ['INCR', key],
-      ['EXPIRE', key, String(ttlSeconds), 'NX'],
-      ['PTTL', key],
+      ["INCR", key],
+      ["EXPIRE", key, String(ttlSeconds), "NX"],
+      ["PTTL", key],
     ];
 
     try {
       const res = await fetch(`${this.url}/pipeline`, {
-        method: 'POST',
+        method: "POST",
         headers: {
           Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(commands),
-        cache: 'no-store',
+        cache: "no-store",
       });
 
       if (!res.ok) {
@@ -129,18 +129,21 @@ export class UpstashRateLimitStore implements RateLimitStore {
       const incr = replies[0]?.result;
       const pttl = replies[2]?.result;
 
-      if (typeof incr !== 'number') {
+      if (typeof incr !== "number") {
         console.error(`[rate-limit] Respuesta INCR inválida para '${key}' — fail-open`);
         return this.openResult(windowMs);
       }
       if (replies.some((r) => r.error)) {
-        console.error(`[rate-limit] Error parcial de Upstash para '${key}':`, replies.map((r) => r.error));
+        console.error(
+          `[rate-limit] Error parcial de Upstash para '${key}':`,
+          replies.map((r) => r.error)
+        );
       }
 
       // PTTL > 0: ventana ya anclada. PTTL -1: la clave quedó sin TTL (carrera
       // con expiración); reparamos best-effort con un EXPIRE adicional.
       let resetAt: number;
-      if (typeof pttl === 'number' && pttl > 0) {
+      if (typeof pttl === "number" && pttl > 0) {
         resetAt = Date.now() + pttl;
       } else {
         resetAt = Date.now() + windowMs;
@@ -149,7 +152,7 @@ export class UpstashRateLimitStore implements RateLimitStore {
 
       return { count: incr, resetAt };
     } catch (err) {
-      console.error('[rate-limit] Error contactando Upstash — fail-open:', err);
+      console.error("[rate-limit] Error contactando Upstash — fail-open:", err);
       return this.openResult(windowMs);
     }
   }
@@ -162,9 +165,9 @@ export class UpstashRateLimitStore implements RateLimitStore {
   private async rearmExpiry(key: string, ttlSeconds: number): Promise<void> {
     try {
       await fetch(`${this.url}/expire/${encodeURIComponent(key)}/${ttlSeconds}`, {
-        method: 'POST',
+        method: "POST",
         headers: { Authorization: `Bearer ${this.token}` },
-        cache: 'no-store',
+        cache: "no-store",
       });
     } catch {
       // Sin acción: el siguiente incremento volvería a intentarlo vía PTTL -1.
@@ -179,6 +182,11 @@ function createStore(): RateLimitStore {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (url && token) {
     return new UpstashRateLimitStore(url, token);
+  }
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN no configurados — rate limiting en memoria (eludible en Vercel multi-instancia). Configura Upstash en producción."
+    );
   }
   return new MemoryRateLimitStore();
 }
@@ -206,16 +214,19 @@ export function resetRateLimitStore(): void {
  *   añadió y por tanto el verificable.
  */
 function clientIp(request: Request): string {
-  const realIp = request.headers.get('x-real-ip')?.trim();
+  const realIp = request.headers.get("x-real-ip")?.trim();
   if (realIp) return realIp;
 
-  const forwarded = request.headers.get('x-forwarded-for');
+  const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    const hops = forwarded.split(',').map((h) => h.trim()).filter(Boolean);
+    const hops = forwarded
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean);
     if (hops.length > 0) return hops[hops.length - 1];
   }
 
-  return 'anonymous';
+  return "anonymous";
 }
 
 /** Clave por IP + ruta: limita cada endpoint de forma independiente. */
